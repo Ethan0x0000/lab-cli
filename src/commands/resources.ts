@@ -4,6 +4,7 @@ import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
 import { parseSinfoFormat, parseSinfoJson } from '../slurm/parser.js'
 import type { SlurmNodeInfo } from '../types/index.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
 
 function colorizeNodeState(state: string): string {
   const normalizedState = state.toLowerCase()
@@ -36,15 +37,14 @@ export function registerResourcesCommand(program: Command): void {
         const config = await getConfig()
 
         client = new SSHClient()
-        await client.connect({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          authMethod: config.authMethod,
-          privateKeyPath: config.privateKeyPath,
-        })
+        await client.connect(await buildSSHOptions(config))
 
         const sinfoResult = await client.exec('sinfo --json')
+
+        if (sinfoResult.exitCode !== 0 && !sinfoResult.stdout.trim()) {
+          throw new Error(`sinfo 命令失败: ${sinfoResult.stderr || '未知错误'}`)
+        }
+
         let nodes: SlurmNodeInfo[] = []
 
         try {
@@ -110,7 +110,7 @@ export function registerResourcesCommand(program: Command): void {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`获取资源信息失败: ${msg}`))
-        process.exit(1)
+        process.exitCode = 1
       } finally {
         client?.disconnect()
       }

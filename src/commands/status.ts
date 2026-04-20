@@ -3,6 +3,9 @@ import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
 import { parseSqueueFormat, parseSqueueJson } from '../slurm/parser.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { shellQuote } from '../utils/shell.js'
+import type { SlurmJobInfo } from '../types/index.js'
 
 function colorizeState(state: string): string {
   switch (state.toUpperCase()) {
@@ -30,20 +33,19 @@ export function registerStatusCommand(program: Command): void {
       try {
         const config = await getConfig()
         client = new SSHClient()
-        await client.connect({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          authMethod: config.authMethod,
-          privateKeyPath: config.privateKeyPath,
-        })
+        await client.connect(await buildSSHOptions(config))
 
         let squeueCmd = 'squeue --json'
-        if (!options.all) squeueCmd += ` --user=${config.username}`
-        if (options.jobId) squeueCmd += ` --jobs=${options.jobId}`
+        if (!options.all) squeueCmd += ` --user=${shellQuote(config.username)}`
+        if (options.jobId) squeueCmd += ` --jobs=${shellQuote(options.jobId)}`
 
         const result = await client.exec(squeueCmd)
-        let jobs = []
+
+        if (result.exitCode !== 0 && !result.stdout.trim()) {
+          throw new Error(`squeue 命令失败: ${result.stderr || '未知错误'}`)
+        }
+
+        let jobs: SlurmJobInfo[] = []
 
         try {
           jobs = parseSqueueJson(result.stdout)
@@ -94,7 +96,7 @@ export function registerStatusCommand(program: Command): void {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`获取状态失败: ${msg}`))
-        process.exit(1)
+        process.exitCode = 1
       } finally {
         client?.disconnect()
       }

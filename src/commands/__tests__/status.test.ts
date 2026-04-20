@@ -114,7 +114,7 @@ describe('status 命令', () => {
 
     await program.parseAsync(['node', 'lab-cli', 'status'])
 
-    expect(mockExec).toHaveBeenCalledWith('squeue --json --user=alice')
+    expect(mockExec).toHaveBeenCalledWith("squeue --json --user='alice'")
     expect(mockParseSqueueJson).toHaveBeenCalledWith('{"jobs":[]}')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('JobID'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('12345'))
@@ -131,7 +131,7 @@ describe('status 命令', () => {
 
     await program.parseAsync(['node', 'lab-cli', 'status', '--all', '--job-id', '12345'])
 
-    expect(mockExec).toHaveBeenCalledWith('squeue --json --jobs=12345')
+    expect(mockExec).toHaveBeenCalledWith("squeue --json --jobs='12345'")
     expect(mockParseSqueueFormat).toHaveBeenCalledWith('{"jobs":[]}')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('12345'))
   })

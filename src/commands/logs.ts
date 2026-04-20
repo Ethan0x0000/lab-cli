@@ -2,6 +2,8 @@ import type { Command } from 'commander'
 import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { shellQuote } from '../utils/shell.js'
 
 export function registerLogsCommand(program: Command): void {
   program
@@ -17,50 +19,61 @@ export function registerLogsCommand(program: Command): void {
       try {
         const config = await getConfig()
         client = new SSHClient()
-        await client.connect({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          authMethod: config.authMethod,
-          privateKeyPath: config.privateKeyPath,
-        })
+        await client.connect(await buildSSHOptions(config))
 
-        let logPath: string
-        if (jobId) {
-          const scontrolResult = await client.exec(`scontrol show job ${jobId}`)
-          if (scontrolResult.exitCode !== 0) {
-            console.error(chalk.red(`无法获取任务信息: ${scontrolResult.stderr}`))
-            process.exit(1)
-          }
-
-          const pathKey = options.error ? 'StdErr' : 'StdOut'
-          const match = scontrolResult.stdout.match(new RegExp(`${pathKey}=([^\\s]+)`))
-          if (!match) {
-            console.error(chalk.red('无法找到日志文件路径'))
-            process.exit(1)
-          }
-
-          logPath = match[1]
-        } else {
+        if (!jobId) {
           console.error(chalk.red('请指定 jobId'))
-          process.exit(1)
-          return
+          throw new Error('请指定 jobId')
+        }
+
+        const scontrolResult = await client.exec(`scontrol show job ${shellQuote(jobId)}`)
+        if (scontrolResult.exitCode !== 0) {
+          console.error(chalk.red(`无法获取任务信息: ${scontrolResult.stderr}`))
+          throw new Error(scontrolResult.stderr)
+        }
+
+        const pathKey = options.error ? 'StdErr' : 'StdOut'
+        const match = scontrolResult.stdout.match(new RegExp(`${pathKey}=([^\\s]+)`))
+        if (!match) {
+          console.error(chalk.red('无法找到日志文件路径'))
+          throw new Error('无法找到日志文件路径')
+        }
+
+        const logPath = match[1]
+
+        const tailNum = parseInt(options.tail, 10)
+        if (!Number.isFinite(tailNum) || tailNum < 1) {
+          throw new Error('--tail 参数必须是正整数')
         }
 
         if (options.follow) {
-          const channel = await client.execStream(`tail -f ${logPath}`)
+          const channel = await client.execStream(`tail -n ${shellQuote(String(tailNum))} -f ${shellQuote(logPath)}`)
           channel.pipe(process.stdout)
-          channel.on('close', () => {
-            client?.disconnect()
-            process.exit(0)
-          })
-          process.on('SIGINT', () => {
-            client?.disconnect()
-            process.exit(0)
+          await new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+              process.off('SIGINT', onSigint)
+              channel.off('close', onClose)
+              channel.off('error', onError)
+            }
+            const onClose = () => {
+              cleanup()
+              resolve()
+            }
+            const onError = (error: Error) => {
+              cleanup()
+              reject(error)
+            }
+            const onSigint = () => {
+              cleanup()
+              resolve()
+            }
+
+            channel.on('close', onClose)
+            channel.on('error', onError)
+            process.on('SIGINT', onSigint)
           })
         } else {
-          const tailLines = options.tail ?? '50'
-          const result = await client.exec(`tail -n ${tailLines} ${logPath}`)
+          const result = await client.exec(`tail -n ${shellQuote(String(tailNum))} ${shellQuote(logPath)}`)
 
           if (result.exitCode !== 0) {
             if (result.stderr.includes('No such file')) {
@@ -68,7 +81,7 @@ export function registerLogsCommand(program: Command): void {
             } else {
               console.error(chalk.red(`读取日志失败: ${result.stderr}`))
             }
-            process.exit(1)
+            throw new Error(result.stderr)
           }
 
           process.stdout.write(result.stdout)
@@ -76,8 +89,9 @@ export function registerLogsCommand(program: Command): void {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`查看日志失败: ${msg}`))
+        process.exitCode = 1
+      } finally {
         client?.disconnect()
-        process.exit(1)
       }
     })
 }

@@ -8,8 +8,8 @@ export async function detectSlurmJsonSupport(exec: ExecFn): Promise<boolean> {
   }
 
   try {
-    const result = await exec('sinfo --json 2>&1 | head -1')
-    cachedResult = result.stdout.trim().startsWith('{') || result.exitCode === 0
+    const result = await exec('sinfo --json')
+    cachedResult = result.exitCode === 0 && result.stdout.trim().startsWith('{')
   } catch {
     cachedResult = false
   }

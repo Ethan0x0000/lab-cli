@@ -150,9 +150,10 @@ describe('doctor 命令', () => {
     expect(mockCheckSshConnection).not.toHaveBeenCalled()
     expect(mockCheckSlurmAvailable).not.toHaveBeenCalled()
     expect(mockCheckSlurmJsonSupport).not.toHaveBeenCalled()
-    expect(console.log).toHaveBeenCalledWith('✗ 跳过 SSH 连接检查：全局配置未通过')
-    expect(console.log).toHaveBeenCalledWith('✗ 跳过 Slurm 可用性检查：全局配置未通过')
-    expect(console.log).toHaveBeenCalledWith('✗ 跳过 Slurm JSON 支持检查：全局配置未通过')
+    expect(console.log).toHaveBeenCalledWith('○ 跳过 SSH 连接检查：全局配置未通过')
+    expect(console.log).toHaveBeenCalledWith('○ 跳过 Slurm 可用性检查：全局配置未通过')
+    expect(console.log).toHaveBeenCalledWith('○ 跳过 Slurm JSON 支持检查：全局配置未通过')
+    expect(console.log).toHaveBeenCalledWith('\n诊断完成: 2/3 项通过（3 项跳过）')
   })
 
   it('SSH 检查失败时跳过 Slurm 检查', async () => {
@@ -164,8 +165,9 @@ describe('doctor 命令', () => {
     expect(mockCheckSshConnection).toHaveBeenCalledTimes(1)
     expect(mockCheckSlurmAvailable).not.toHaveBeenCalled()
     expect(mockCheckSlurmJsonSupport).not.toHaveBeenCalled()
-    expect(console.log).toHaveBeenCalledWith('✗ 跳过 Slurm 可用性检查：SSH 连接未通过')
-    expect(console.log).toHaveBeenCalledWith('✗ 跳过 Slurm JSON 支持检查：SSH 连接未通过')
+    expect(console.log).toHaveBeenCalledWith('○ 跳过 Slurm 可用性检查：SSH 连接未通过')
+    expect(console.log).toHaveBeenCalledWith('○ 跳过 Slurm JSON 支持检查：SSH 连接未通过')
+    expect(console.log).toHaveBeenCalledWith('\n诊断完成: 3/4 项通过（2 项跳过）')
   })
 
   it('部分检查失败时汇总通过数量', async () => {

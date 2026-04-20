@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetConfig = vi.fn()
 const mockConnect = vi.fn()
@@ -60,11 +60,17 @@ function createMockConfig() {
 describe('cancel 命令', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.exitCode = undefined
     mockGetConfig.mockResolvedValue(createMockConfig())
     mockConnect.mockResolvedValue(undefined)
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 })
     mockParseSqueueJson.mockReturnValue([])
     mockPrompt.mockResolvedValue({ confirm: true })
+  })
+
+  afterEach(() => {
+    process.exitCode = undefined
+    vi.restoreAllMocks()
   })
 
   it('注册 cancel 命令及其 --all 选项', async () => {
@@ -118,7 +124,7 @@ describe('cancel 命令', () => {
 
     await program.parseAsync(['node', 'test', 'cancel', '--all'])
 
-    expect(mockExec).toHaveBeenCalledWith('squeue --json --user=alice')
+    expect(mockExec).toHaveBeenCalledWith("squeue --json --user='alice'")
     expect(mockPrompt).not.toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith('没有运行中的任务')
     expect(mockDisconnect).toHaveBeenCalled()
@@ -127,10 +133,6 @@ describe('cancel 命令', () => {
   })
 
   it('缺少 jobId 且未使用 --all 时输出错误并退出', async () => {
-    const exitError = new Error('process.exit')
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw Object.assign(exitError, { code })
-    }) as never)
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { Command } = await import('commander')
     const { registerCancelCommand } = await import('../cancel.js')
@@ -138,15 +140,10 @@ describe('cancel 命令', () => {
     const program = new Command()
     registerCancelCommand(program)
 
-    await expect(program.parseAsync(['node', 'test', 'cancel'])).rejects.toMatchObject({
-      message: 'process.exit',
-      code: 1,
-    })
+    await program.parseAsync(['node', 'test', 'cancel'])
 
-    expect(errorSpy).toHaveBeenCalledWith('请提供 jobId 或使用 --all 取消所有任务')
+    expect(errorSpy).toHaveBeenCalledWith('取消失败: 请提供 jobId 或使用 --all 取消所有任务')
+    expect(process.exitCode).toBe(1)
     expect(mockDisconnect).toHaveBeenCalled()
-
-    exitSpy.mockRestore()
-    errorSpy.mockRestore()
   })
 })

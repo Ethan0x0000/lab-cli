@@ -100,7 +100,7 @@ export async function initGlobal(): Promise<void> {
 
   const config = globalConfigSchema.parse({
     host: answers.host.trim(),
-    port: answers.port,
+    port: Number.isFinite(answers.port) ? answers.port : 22,
     username: answers.username.trim(),
     authMethod: answers.authMethod,
     privateKeyPath: answers.authMethod === 'key' ? answers.privateKeyPath?.trim() : undefined,
@@ -115,13 +115,15 @@ export async function initGlobal(): Promise<void> {
 export async function initProject(): Promise<void> {
   const cwd = process.cwd()
   const labrcPath = join(cwd, '.labrc')
+  const configNames = ['.labrc', '.labrc.yaml', '.labrc.yml']
+  const existingConfig = configNames.find(name => existsSync(join(cwd, name)))
 
-  if (existsSync(labrcPath)) {
+  if (existingConfig) {
     const { overwrite } = await inquirer.prompt<OverwriteAnswer>([
       {
         type: 'confirm',
         name: 'overwrite',
-        message: '项目配置 .labrc 已存在，是否覆盖？',
+        message: `项目配置 ${existingConfig} 已存在，是否覆盖？`,
         default: false,
       },
     ])
@@ -152,7 +154,7 @@ export async function initProject(): Promise<void> {
     condaEnvName: answers.condaEnvName?.trim() || undefined,
     condaPythonVersion: answers.condaPythonVersion.trim(),
     slurmPartition: answers.slurmPartition?.trim() || undefined,
-    slurmGpus: answers.slurmGpus || undefined,
+    slurmGpus: Number.isFinite(answers.slurmGpus) ? answers.slurmGpus : undefined,
   })
 
   writeProjectConfig(config)

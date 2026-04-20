@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
 import { Client, type ClientChannel, type ConnectConfig, type SFTPWrapper } from 'ssh2'
 import type { SSHConnectionOptions, SSHExecResult } from '../types/index.js'
+import { expandTilde } from '../utils/shell.js'
 
 export class SSHClient {
   private readonly client: Client
@@ -32,7 +33,8 @@ export class SSHClient {
         }
 
         try {
-          config.privateKey = readFileSync(options.privateKeyPath)
+          const resolvedKeyPath = expandTilde(options.privateKeyPath)
+          config.privateKey = readFileSync(resolvedKeyPath)
         } catch {
           reject(new Error(`无法读取密钥文件: ${options.privateKeyPath}`))
           return

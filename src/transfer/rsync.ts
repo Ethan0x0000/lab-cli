@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { expandTilde } from '../utils/shell.js'
 
 export interface SyncOptions {
   localPath: string
@@ -30,8 +31,9 @@ export function buildRsyncArgs(options: SyncOptions): string[] {
   }
 
   const port = options.port ?? 22
-  const sshArgs = options.privateKeyPath
-    ? `ssh -p ${port} -i "${options.privateKeyPath}" -o StrictHostKeyChecking=no`
+  const resolvedKeyPath = options.privateKeyPath ? expandTilde(options.privateKeyPath) : undefined
+  const sshArgs = resolvedKeyPath
+    ? `ssh -p ${port} -i "${resolvedKeyPath}" -o StrictHostKeyChecking=no`
     : `ssh -p ${port} -o StrictHostKeyChecking=no`
 
   args.push('-e', sshArgs)

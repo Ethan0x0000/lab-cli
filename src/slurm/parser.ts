@@ -122,10 +122,13 @@ export function parseSacctJson(json: string): SlurmAccountQuota[] {
 }
 
 export function parseSinfoFormat(text: string): SlurmNodeInfo[] {
-  const lines = splitDataLines(text, ['NODELIST', 'STATE', 'CPU', 'MEMORY', 'PARTITION'])
+  const lines = splitDataLines(text, ['NODELIST', 'STATE', 'CPU', 'MEMORY', 'GRES', 'PARTITION'])
 
   return lines.map(line => {
     const parts = line.split(/\s+/)
+    const gres = parts[4] ?? ''
+    const gpuMatch = gres.match(/gpu(?::[^:,()]+)*:(\d+)/)
+    const gpuTotal = gpuMatch?.[1] ? Number.parseInt(gpuMatch[1], 10) || 0 : 0
 
     return {
       nodeName: parts[0] ?? '',
@@ -134,9 +137,9 @@ export function parseSinfoFormat(text: string): SlurmNodeInfo[] {
       cpuUsed: 0,
       memTotal: Number.parseInt(parts[3] ?? '0', 10) || 0,
       memUsed: 0,
-      gpuTotal: 0,
+      gpuTotal,
       gpuUsed: 0,
-      partitions: parts[4] ? [parts[4]] : [],
+      partitions: parts[5] ? [parts[5]] : [],
     }
   })
 }

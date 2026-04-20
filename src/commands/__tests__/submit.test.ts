@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Command } from 'commander'
 import type { MergedConfig } from '../../types/index.js'
 
@@ -80,6 +80,7 @@ async function setupCommand(): Promise<Command> {
 describe('submit 命令', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.exitCode = undefined
     mockGetConfig.mockResolvedValue(baseConfig)
     mockBuildSbatchCommand.mockReturnValue('sbatch --partition=gpu train.sh')
     mockSyncToRemote.mockResolvedValue({
@@ -95,6 +96,11 @@ describe('submit 命令', () => {
       exitCode: 0,
     })
     mockDisconnect.mockReturnValue(undefined)
+  })
+
+  afterEach(() => {
+    process.exitCode = undefined
+    vi.restoreAllMocks()
   })
 
   it('submit 命令注册到 Commander', async () => {
@@ -211,15 +217,15 @@ describe('submit 命令', () => {
     }) as typeof process.exit)
     const program = await setupCommand()
 
-    await expect(
-      program.parseAsync(['node', 'lab-cli', 'submit', 'train.sh', '--preset', 'nonexistent'])
-    ).rejects.toMatchObject({ code: 1 })
+    await program.parseAsync(['node', 'lab-cli', 'submit', 'train.sh', '--preset', 'nonexistent'])
 
     expect(errorSpy).toHaveBeenNthCalledWith(
       1,
       expect.stringContaining('可用预设: debug, single-gpu, multi-gpu, full-node')
     )
+    expect(errorSpy).toHaveBeenNthCalledWith(2, '提交失败: EXIT:1')
     expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(process.exitCode).toBe(1)
     expect(mockGetConfig).not.toHaveBeenCalled()
     expect(mockBuildSbatchCommand).not.toHaveBeenCalled()
   })
@@ -299,11 +305,12 @@ describe('submit 命令', () => {
     }) as typeof process.exit)
     const program = await setupCommand()
 
-    await expect(program.parseAsync(['node', 'lab-cli', 'submit', 'train.sh'])).rejects.toMatchObject({ code: 1 })
+    await program.parseAsync(['node', 'lab-cli', 'submit', 'train.sh'])
 
     expect(errorSpy).toHaveBeenNthCalledWith(1, '提交失败: Invalid partition: gpu')
-    expect(errorSpy).toHaveBeenNthCalledWith(2, '提交失败: EXIT:1')
+    expect(errorSpy).toHaveBeenNthCalledWith(2, '提交失败: Invalid partition: gpu')
     expect(mockDisconnect).toHaveBeenCalledTimes(1)
-    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(process.exitCode).toBe(1)
+    expect(exitSpy).not.toHaveBeenCalled()
   })
 })

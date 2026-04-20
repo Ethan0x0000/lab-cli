@@ -110,7 +110,6 @@ describe('upload 命令', () => {
 
     expect(cmd).toBeDefined()
     expect(cmd?.description()).toContain('上传')
-    expect(cmd?.options.map((option) => option.long)).toContain('--compress')
   })
 
   it('目录上传时调用 syncToRemote 并使用默认目标路径', async () => {

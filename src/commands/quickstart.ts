@@ -6,6 +6,8 @@ import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
 import { syncToRemote } from '../transfer/rsync.js'
 import { checkGlobalConfig, checkProjectConfig } from '../utils/checks.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { shellQuote } from '../utils/shell.js'
 import { initGlobal, initProject } from './init.js'
 
 function printSeparator(): void {
@@ -102,18 +104,16 @@ export function registerQuickstartCommand(program: Command): void {
         if (setupConfirm) {
           try {
             const config = await getConfig()
-            const client = new SSHClient()
-            await client.connect({
-              host: config.host,
-              port: config.port,
-              username: config.username,
-              authMethod: config.authMethod,
-              privateKeyPath: config.privateKeyPath,
-            })
-            const spinner = ora('正在创建远程目录...').start()
-            await client.exec(`mkdir -p ${config.remotePath}`)
-            spinner.succeed(chalk.green('✓ 远程目录已创建'))
-            client.disconnect()
+            let client: SSHClient | null = new SSHClient()
+            try {
+              await client.connect(await buildSSHOptions(config))
+              const spinner = ora('正在创建远程目录...').start()
+              await client.exec(`mkdir -p ${shellQuote(config.remotePath)}`)
+              spinner.succeed(chalk.green('✓ 远程目录已创建'))
+            } finally {
+              client?.disconnect()
+              client = null
+            }
           } catch (error) {
             console.log(chalk.yellow(`远程环境创建跳过: ${error instanceof Error ? error.message : String(error)}`))
             console.log(chalk.dim('可稍后运行 lab-cli setup'))

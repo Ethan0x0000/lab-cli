@@ -53,7 +53,7 @@ function createMockConfig() {
     authMethod: 'key' as const,
     privateKeyPath: '~/.ssh/id_rsa',
     remotePath: '/remote/project',
-    syncExclude: ['node_modules', '.git'],
+    syncExclude: ['node_modules', '.git', '*.pyc'],
     defaultRemotePath: '/home/alice',
     name: 'test',
     condaPythonVersion: '3.10',
@@ -116,7 +116,7 @@ describe('watch 命令', () => {
       remotePath: '/remote/project',
       host: '10.0.0.1',
       username: 'alice',
-      excludePatterns: ['node_modules', '.git'],
+      excludePatterns: ['node_modules', '.git', '*.pyc'],
       privateKeyPath: '~/.ssh/id_rsa',
       port: 22,
     })
@@ -177,6 +177,31 @@ describe('watch 命令', () => {
       localPath: 'E:/repo',
       remotePath: '/remote/project',
     }))
+
+    cwdSpy.mockRestore()
+    processOnSpy.mockRestore()
+  })
+
+  it('将 syncExclude 转成能正确匹配 glob 的 ignored 正则', async () => {
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('/repo')
+    const processOnSpy = vi.spyOn(process, 'on').mockImplementation(() => process)
+    const { Command } = await import('commander')
+    const { registerWatchCommand } = await import('../watch.js')
+
+    const program = new Command()
+    registerWatchCommand(program)
+
+    await program.parseAsync(['node', 'test', 'watch', '--no-initial-sync'])
+
+    const [, options] = mockWatch.mock.calls[0] as [string, { ignored: RegExp[] }]
+    const ignored = options.ignored
+    const dotGitPattern = ignored.find(pattern => pattern.test('/repo/.git/config'))
+    const pycPattern = ignored.find(pattern => pattern.test('/repo/build/output.pyc'))
+
+    expect(dotGitPattern).toBeDefined()
+    expect(dotGitPattern?.test('/repo/xgit/config')).toBe(false)
+    expect(pycPattern).toBeDefined()
+    expect(pycPattern?.test('/repo/build/output.pyc.tmp')).toBe(false)
 
     cwdSpy.mockRestore()
     processOnSpy.mockRestore()

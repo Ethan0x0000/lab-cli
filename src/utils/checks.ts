@@ -52,20 +52,21 @@ export async function checkGlobalConfig(): Promise<CheckResult> {
 export async function checkProjectConfig(): Promise<CheckResult> {
   try {
     const cwd = process.cwd()
-    const labrcPath = join(cwd, '.labrc')
+    const configNames = ['.labrc', '.labrc.yaml', '.labrc.yml']
+    const found = configNames.find(name => existsSync(join(cwd, name)))
 
-    if (!existsSync(labrcPath)) {
+    if (!found) {
       return {
         ok: false,
         message: '项目配置不存在',
-        detail: `预期路径: ${labrcPath}`,
+        detail: `预期路径: ${configNames.map(name => join(cwd, name)).join(' 或 ')}`,
       }
     }
 
     return {
       ok: true,
       message: '项目配置正常',
-      detail: labrcPath,
+      detail: join(cwd, found),
     }
   } catch (error) {
     return {

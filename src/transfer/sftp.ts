@@ -2,6 +2,14 @@ import type { SFTPWrapper } from 'ssh2'
 import { createReadStream, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
+function matchesGlob(filename: string, pattern: string): boolean {
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*')
+
+  return new RegExp(`^${escaped}$`).test(filename)
+}
+
 export async function uploadFile(
   sftp: SFTPWrapper,
   localPath: string,
@@ -28,7 +36,7 @@ export async function uploadDirectory(
   const entries = readdirSync(localDir)
 
   for (const entry of entries) {
-    if (exclude.some((pattern) => entry === pattern || entry.startsWith(pattern))) {
+    if (exclude.some((pattern) => matchesGlob(entry, pattern))) {
       continue
     }
 

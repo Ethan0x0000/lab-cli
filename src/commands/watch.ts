@@ -19,6 +19,14 @@ function debounce<T extends unknown[]>(fn: (...args: T) => void, delay: number):
   }
 }
 
+function globToRegex(pattern: string): RegExp {
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*')
+
+  return new RegExp(`(^|/)${escaped}($|/)`)
+}
+
 export function registerWatchCommand(program: Command): void {
   program
     .command('watch')
@@ -30,9 +38,11 @@ export function registerWatchCommand(program: Command): void {
         const cwd = process.cwd()
 
         let syncing = false
+        let pendingPath: string | undefined
 
         const doSync = async (changedFile?: string) => {
           if (syncing) {
+            pendingPath = changedFile ?? pendingPath
             return
           }
 
@@ -55,6 +65,11 @@ export function registerWatchCommand(program: Command): void {
             console.error(chalk.red(`[watch] 同步失败: ${err instanceof Error ? err.message : String(err)}`))
           } finally {
             syncing = false
+            if (pendingPath !== undefined) {
+              const path = pendingPath
+              pendingPath = undefined
+              doSync(path).catch(() => {})
+            }
           }
         }
 
@@ -67,7 +82,7 @@ export function registerWatchCommand(program: Command): void {
         }
 
         const watcher = chokidar.watch(cwd, {
-          ignored: config.syncExclude.map(pattern => new RegExp(pattern.replace('*', '.*'))),
+          ignored: config.syncExclude.map(globToRegex),
           ignoreInitial: true,
           awaitWriteFinish: { stabilityThreshold: 300 },
           depth: 10,

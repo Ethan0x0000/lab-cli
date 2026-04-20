@@ -6,6 +6,7 @@ import { SSHClient } from '../ssh/client.js'
 import { buildSbatchCommand, type SbatchOptions } from '../slurm/commands.js'
 import { getPreset, getPresetOptions, listPresets } from '../slurm/presets.js'
 import { syncToRemote } from '../transfer/rsync.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
 
 export function registerSubmitCommand(program: Command): void {
   program
@@ -91,19 +92,13 @@ export function registerSubmitCommand(program: Command): void {
         }
 
         client = new SSHClient()
-        await client.connect({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          authMethod: config.authMethod,
-          privateKeyPath: config.privateKeyPath,
-        })
+        await client.connect(await buildSSHOptions(config))
 
         const result = await client.exec(sbatchCmd)
 
         if (result.exitCode !== 0) {
           console.error(chalk.red(`提交失败: ${result.stderr}`))
-          process.exit(1)
+          throw new Error(result.stderr)
         }
 
         const match = result.stdout.match(/Submitted batch job (\d+)/)
@@ -125,7 +120,7 @@ export function registerSubmitCommand(program: Command): void {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`提交失败: ${msg}`))
-        process.exit(1)
+        process.exitCode = 1
       } finally {
         client?.disconnect()
       }

@@ -7,6 +7,7 @@ import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
 import { syncToRemote } from '../transfer/rsync.js'
 import { uploadFile } from '../transfer/sftp.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
 
 const SMALL_FILE_THRESHOLD = 100 * 1024 * 1024 // 100MB
 
@@ -14,7 +15,6 @@ export function registerUploadCommand(program: Command): void {
   program
     .command('upload <localPath> [remotePath]')
     .description('上传数据集到远程服务器')
-    .option('--compress', '启用 rsync 压缩 (-z)')
     .action(async (localPath: string, remotePath: string | undefined) => {
       try {
         if (!existsSync(localPath)) {
@@ -40,16 +40,13 @@ export function registerUploadCommand(program: Command): void {
             })
           } else if (stat.size < SMALL_FILE_THRESHOLD) {
             const client = new SSHClient()
-            await client.connect({
-              host: config.host,
-              port: config.port,
-              username: config.username,
-              authMethod: config.authMethod,
-              privateKeyPath: config.privateKeyPath,
-            })
-            const sftp = await client.sftp()
-            await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
-            client.disconnect()
+            try {
+              await client.connect(await buildSSHOptions(config))
+              const sftp = await client.sftp()
+              await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
+            } finally {
+              client.disconnect()
+            }
             console.log(chalk.dim('ℹ 使用 SFTP 传输（rsync 不可用或文件较小）'))
           } else {
             await syncToRemote({

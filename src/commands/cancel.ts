@@ -5,6 +5,8 @@ import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
 import { buildScancelCommand } from '../slurm/commands.js'
 import { parseSqueueJson } from '../slurm/parser.js'
+import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { shellQuote } from '../utils/shell.js'
 
 export function registerCancelCommand(program: Command): void {
   program
@@ -18,16 +20,15 @@ export function registerCancelCommand(program: Command): void {
         const config = await getConfig()
 
         client = new SSHClient()
-        await client.connect({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          authMethod: config.authMethod,
-          privateKeyPath: config.privateKeyPath,
-        })
+        await client.connect(await buildSSHOptions(config))
 
         if (options.all) {
-          const squeueResult = await client.exec(`squeue --json --user=${config.username}`)
+          const squeueResult = await client.exec(`squeue --json --user=${shellQuote(config.username)}`)
+
+          if (squeueResult.exitCode !== 0 && !squeueResult.stdout.trim()) {
+            throw new Error(`squeue 命令失败: ${squeueResult.stderr || '未知错误'}`)
+          }
+
           let jobCount = 0
 
           try {
@@ -61,10 +62,9 @@ export function registerCancelCommand(program: Command): void {
             return
           }
 
-          const cancelResult = await client.exec(`scancel --user=${config.username} --ctld`)
+          const cancelResult = await client.exec(`scancel --user=${shellQuote(config.username)} --ctld`)
           if (cancelResult.exitCode !== 0) {
-            console.error(chalk.red(`取消失败: ${cancelResult.stderr}`))
-            process.exit(1)
+            throw new Error(cancelResult.stderr || '未知错误')
           }
 
           console.log(chalk.green('✓ 所有任务已取消'))
@@ -76,20 +76,18 @@ export function registerCancelCommand(program: Command): void {
           const result = await client.exec(cancelCmd)
 
           if (result.exitCode !== 0) {
-            console.error(chalk.red(`取消失败: ${result.stderr || 'Invalid job id'}`))
-            process.exit(1)
+            throw new Error(result.stderr || 'Invalid job id')
           }
 
           console.log(chalk.green(`✓ 任务 ${jobId} 已取消`))
           return
         }
 
-        console.error(chalk.red('请提供 jobId 或使用 --all 取消所有任务'))
-        process.exit(1)
+        throw new Error('请提供 jobId 或使用 --all 取消所有任务')
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`取消失败: ${msg}`))
-        process.exit(1)
+        process.exitCode = 1
       } finally {
         client?.disconnect()
       }

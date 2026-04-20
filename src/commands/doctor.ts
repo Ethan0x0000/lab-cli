@@ -14,13 +14,30 @@ import {
   type CheckResult,
 } from '../utils/checks.js'
 
+function isSkippedResult(result: CheckResult): boolean {
+  return result.message.startsWith('跳过')
+}
+
 function printResult(result: CheckResult): void {
-  const symbol = result.ok ? chalk.green('✓') : chalk.red('✗')
+  const symbol = isSkippedResult(result)
+    ? chalk.dim('○')
+    : result.ok
+      ? chalk.green('✓')
+      : chalk.red('✗')
   console.log(`${symbol} ${result.message}`)
 
   if (!result.ok && result.detail) {
     console.log(chalk.dim(result.detail))
   }
+}
+
+function printSummary(results: CheckResult[]): void {
+  const skippedCount = results.filter(isSkippedResult).length
+  const passedCount = results.filter(result => result.ok).length
+  const totalCount = results.length - skippedCount
+  const suffix = skippedCount > 0 ? `（${skippedCount} 项跳过）` : ''
+
+  console.log(chalk.blue(`\n诊断完成: ${passedCount}/${totalCount} 项通过${suffix}`))
 }
 
 function skippedCheck(message: string, detail?: string): CheckResult {
@@ -67,8 +84,7 @@ export function registerDoctorCommand(program: Command): void {
           printResult(skippedSlurmResult)
           printResult(skippedJsonResult)
 
-          const passedCount = results.filter(result => result.ok).length
-          console.log(chalk.blue(`\n诊断完成: ${passedCount}/${results.length} 项通过`))
+          printSummary(results)
           return
         }
 
@@ -93,8 +109,7 @@ export function registerDoctorCommand(program: Command): void {
           printResult(skippedSlurmResult)
           printResult(skippedJsonResult)
 
-          const passedCount = results.filter(result => result.ok).length
-          console.log(chalk.blue(`\n诊断完成: ${passedCount}/${results.length} 项通过`))
+          printSummary(results)
           return
         }
 
@@ -109,8 +124,7 @@ export function registerDoctorCommand(program: Command): void {
           printResult(skippedSlurmResult)
           printResult(skippedJsonResult)
 
-          const passedCount = results.filter(result => result.ok).length
-          console.log(chalk.blue(`\n诊断完成: ${passedCount}/${results.length} 项通过`))
+          printSummary(results)
           return
         }
 
@@ -123,8 +137,7 @@ export function registerDoctorCommand(program: Command): void {
         const slurmJsonResult = await runCheck('检查 Slurm JSON 支持...', () => checkSlurmJsonSupport(client as SSHClient))
         results.push(slurmJsonResult)
 
-        const passedCount = results.filter(result => result.ok).length
-        console.log(chalk.blue(`\n诊断完成: ${passedCount}/${results.length} 项通过`))
+        printSummary(results)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`诊断失败: ${message}`))

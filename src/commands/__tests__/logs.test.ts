@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Command } from 'commander'
 import type { MergedConfig } from '../../types/index.js'
 
@@ -33,12 +33,6 @@ vi.mock('chalk', () => ({
   },
 }))
 
-class ExitCalled extends Error {
-  constructor(readonly code: number) {
-    super(`EXIT:${code}`)
-  }
-}
-
 class MockChannel extends EventEmitter {
   pipe = vi.fn().mockReturnThis()
 }
@@ -66,6 +60,7 @@ async function setupCommand(): Promise<Command> {
 describe('logs 命令', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.exitCode = undefined
     mockGetConfig.mockResolvedValue(baseConfig)
     mockConnect.mockResolvedValue(undefined)
     mockExec.mockResolvedValueOnce({
@@ -79,6 +74,11 @@ describe('logs 命令', () => {
     })
     mockExecStream.mockResolvedValue(new MockChannel())
     mockDisconnect.mockReturnValue(undefined)
+  })
+
+  afterEach(() => {
+    process.exitCode = undefined
+    vi.restoreAllMocks()
   })
 
   it('logs 命令注册到 Commander', async () => {
@@ -107,8 +107,8 @@ describe('logs 命令', () => {
 
     await program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--tail', '20'])
 
-    expect(mockExec).toHaveBeenNthCalledWith(1, 'scontrol show job 12345')
-    expect(mockExec).toHaveBeenNthCalledWith(2, 'tail -n 20 /tmp/slurm/12345.out')
+    expect(mockExec).toHaveBeenNthCalledWith(1, "scontrol show job '12345'")
+    expect(mockExec).toHaveBeenNthCalledWith(2, "tail -n '20' '/tmp/slurm/12345.out'")
     expect(writeSpy).toHaveBeenCalledWith('line1\nline2\n')
   })
 
@@ -118,34 +118,44 @@ describe('logs 命令', () => {
 
     await program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--error'])
 
-    expect(mockExec).toHaveBeenNthCalledWith(2, 'tail -n 50 /tmp/slurm/12345.err')
+    expect(mockExec).toHaveBeenNthCalledWith(2, "tail -n '50' '/tmp/slurm/12345.err'")
     expect(writeSpy).toHaveBeenCalled()
   })
 
   it('follow 模式通过 execStream 跟踪日志', async () => {
     const channel = new MockChannel()
     mockExecStream.mockResolvedValue(channel)
-    const processOnSpy = vi.spyOn(process, 'on').mockImplementation((() => process) as typeof process.on)
+    let resolveSigintReady: (() => void) | undefined
+    const sigintReady = new Promise<void>((resolve) => {
+      resolveSigintReady = resolve
+    })
+    const processOnSpy = vi.spyOn(process, 'on').mockImplementation((((event, listener) => {
+      void listener
+      if (event === 'SIGINT') {
+        resolveSigintReady?.()
+      }
+      return process
+    }) as typeof process.on))
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--follow'])
+    const parsePromise = program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--follow'])
+    await sigintReady
+    channel.emit('close')
+    await parsePromise
 
-    expect(mockExecStream).toHaveBeenCalledWith('tail -f /tmp/slurm/12345.out')
+    expect(mockExecStream).toHaveBeenCalledWith("tail -n '50' -f '/tmp/slurm/12345.out'")
     expect(channel.pipe).toHaveBeenCalledWith(process.stdout)
     expect(processOnSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function))
   })
 
   it('缺少 jobId 时输出错误并退出', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
     const program = await setupCommand()
 
-    await expect(program.parseAsync(['node', 'lab-cli', 'logs'])).rejects.toMatchObject({ code: 1 })
+    await program.parseAsync(['node', 'lab-cli', 'logs'])
 
     expect(errorSpy).toHaveBeenNthCalledWith(1, '请指定 jobId')
-    expect(errorSpy).toHaveBeenNthCalledWith(2, '查看日志失败: EXIT:1')
-    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(errorSpy).toHaveBeenNthCalledWith(2, '查看日志失败: 请指定 jobId')
+    expect(process.exitCode).toBe(1)
   })
 })

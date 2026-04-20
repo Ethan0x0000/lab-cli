@@ -145,7 +145,7 @@ describe('quickstart 命令', () => {
       authMethod: 'key',
       privateKeyPath: '/home/user/.ssh/id_rsa',
     })
-    expect(mockState.sshExec).toHaveBeenCalledWith('mkdir -p /home/user/project')
+    expect(mockState.sshExec).toHaveBeenCalledWith("mkdir -p '/home/user/project'")
     expect(mockState.sshDisconnect).toHaveBeenCalledTimes(1)
     expect(mockState.syncToRemote).toHaveBeenCalledWith({
       localPath: process.cwd(),

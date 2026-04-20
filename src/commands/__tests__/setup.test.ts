@@ -92,6 +92,7 @@ async function runSetup(args: string[] = []): Promise<void> {
 describe('setup 命令', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.exitCode = undefined
     mockGetConfig.mockResolvedValue(baseConfig)
     mockConnect.mockResolvedValue(undefined)
     mockDisconnect.mockImplementation(() => undefined)
@@ -105,6 +106,7 @@ describe('setup 命令', () => {
   })
 
   afterEach(() => {
+    process.exitCode = undefined
     vi.restoreAllMocks()
   })
 
@@ -134,10 +136,10 @@ describe('setup 命令', () => {
       authMethod: baseConfig.authMethod,
       privateKeyPath: baseConfig.privateKeyPath,
     })
-    expect(mockExec).toHaveBeenNthCalledWith(1, `mkdir -p ${baseConfig.remotePath}`)
-    expect(mockExec).toHaveBeenNthCalledWith(2, `ls -la ${baseConfig.remotePath}`)
-    expect(mockExec).toHaveBeenNthCalledWith(3, `conda env list 2>/dev/null | grep "^${baseConfig.condaEnvName} "`)
-    expect(mockExec).toHaveBeenNthCalledWith(4, `conda create -n ${baseConfig.condaEnvName} python=${baseConfig.condaPythonVersion} -y`)
+    expect(mockExec).toHaveBeenNthCalledWith(1, `mkdir -p '${baseConfig.remotePath}'`)
+    expect(mockExec).toHaveBeenNthCalledWith(2, `ls -la '${baseConfig.remotePath}'`)
+    expect(mockExec).toHaveBeenNthCalledWith(3, `conda env list 2>/dev/null | grep -F '${baseConfig.condaEnvName} '`)
+    expect(mockExec).toHaveBeenNthCalledWith(4, `conda create -n '${baseConfig.condaEnvName}' python='${baseConfig.condaPythonVersion}' -y`)
     expect(console.log).toHaveBeenCalledWith('\n✓ 初始化完成')
     expect(mockDisconnect).toHaveBeenCalledTimes(1)
   })
@@ -150,8 +152,8 @@ describe('setup 命令', () => {
     await runSetup(['--skip-conda'])
 
     expect(mockExec).toHaveBeenCalledTimes(2)
-    expect(mockExec).toHaveBeenNthCalledWith(1, `mkdir -p ${baseConfig.remotePath}`)
-    expect(mockExec).toHaveBeenNthCalledWith(2, `ls -la ${baseConfig.remotePath}`)
+    expect(mockExec).toHaveBeenNthCalledWith(1, `mkdir -p '${baseConfig.remotePath}'`)
+    expect(mockExec).toHaveBeenNthCalledWith(2, `ls -la '${baseConfig.remotePath}'`)
   })
 
   it('conda 环境已存在且用户不重建时跳过 conda create', async () => {
@@ -171,10 +173,12 @@ describe('setup 命令', () => {
   it('目录创建失败时输出错误并退出', async () => {
     mockExec.mockResolvedValueOnce(execResult({ exitCode: 1, stderr: 'Permission denied' }))
 
-    await expect(runSetup()).rejects.toThrow('process.exit:1')
+    await runSetup()
 
     expect(mockExec).toHaveBeenCalledTimes(1)
     expect(console.error).toHaveBeenCalledWith('Permission denied')
+    expect(console.error).toHaveBeenCalledWith('初始化失败: Permission denied')
+    expect(process.exitCode).toBe(1)
     expect(mockDisconnect).toHaveBeenCalledTimes(1)
   })
 })

@@ -16,10 +16,10 @@ export function writeGlobalConfig(config: GlobalConfig): void {
   const globalConfigDir = getGlobalConfigDir()
 
   if (!existsSync(globalConfigDir)) {
-    mkdirSync(globalConfigDir, { recursive: true })
+    mkdirSync(globalConfigDir, { recursive: true, mode: 0o700 })
   }
 
-  writeFileSync(getGlobalConfigPath(), stringifyYaml(config), 'utf-8')
+  writeFileSync(getGlobalConfigPath(), stringifyYaml(config), { encoding: 'utf-8', mode: 0o600 })
 }
 
 export function writeProjectConfig(config: ProjectConfig): void {

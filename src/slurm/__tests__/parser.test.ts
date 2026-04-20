@@ -141,9 +141,9 @@ describe('sacct JSON 解析', () => {
 
 describe('文本格式降级解析', () => {
   it('parseSinfoFormat 支持带表头文本', () => {
-    const text = `NODELIST STATE CPU MEMORY PARTITION
-node01 idle 64 256000 gpu
-node02 allocated 32 128000 gpu`
+    const text = `NODELIST STATE CPU MEMORY GRES PARTITION
+node01 idle 64 256000 gpu:4 gpu
+node02 allocated 32 128000 gpu:a100:2 gpu`
 
     expect(parseSinfoFormat(text)).toEqual([
       {
@@ -153,7 +153,7 @@ node02 allocated 32 128000 gpu`
         cpuUsed: 0,
         memTotal: 256000,
         memUsed: 0,
-        gpuTotal: 0,
+        gpuTotal: 4,
         gpuUsed: 0,
         partitions: ['gpu'],
       },
@@ -164,7 +164,7 @@ node02 allocated 32 128000 gpu`
         cpuUsed: 0,
         memTotal: 128000,
         memUsed: 0,
-        gpuTotal: 0,
+        gpuTotal: 2,
         gpuUsed: 0,
         partitions: ['gpu'],
       },
@@ -202,20 +202,20 @@ describe('命令构建', () => {
         error: 'logs/err.txt',
       }),
     ).toBe(
-      'sbatch --partition=gpu --nodes=2 --gres=gpu:4 --time=24:00:00 --job-name=train-bert --output=logs/out.txt --error=logs/err.txt train.sh',
+      "sbatch --partition='gpu' --nodes=2 --gres=gpu:4 --time='24:00:00' --job-name='train-bert' --output='logs/out.txt' --error='logs/err.txt' 'train.sh'",
     )
   })
 
   it('buildSbatchCommand 无选项时只有脚本路径', () => {
-    expect(buildSbatchCommand('train.sh')).toBe('sbatch train.sh')
+    expect(buildSbatchCommand('train.sh')).toBe("sbatch 'train.sh'")
   })
 
   it('构建 sinfo/squeue/scancel 命令', () => {
     expect(buildSinfoCommand(true)).toBe('sinfo --json')
-    expect(buildSinfoCommand(false)).toBe('sinfo --format="%N %T %c %m %P" --noheader')
-    expect(buildSqueueCommand('alice', true)).toBe('squeue --json --user=alice')
+    expect(buildSinfoCommand(false)).toBe('sinfo --format="%N %T %c %m %G %P" --noheader')
+    expect(buildSqueueCommand('alice', true)).toBe("squeue --json --user='alice'")
     expect(buildSqueueCommand(undefined, false)).toBe('squeue --format="%i %P %j %D %T %M %l" --noheader')
-    expect(buildScancelCommand('12345')).toBe('scancel 12345')
+    expect(buildScancelCommand('12345')).toBe("scancel '12345'")
   })
 })
 

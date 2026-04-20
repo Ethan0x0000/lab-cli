@@ -1,3 +1,4 @@
+import { homedir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { buildRsyncArgs } from '../rsync.js'
 import * as transfer from '../index.js'
@@ -38,7 +39,7 @@ describe('rsync 参数构建', () => {
     const sshArg = args[sshArgIdx + 1]
     expect(sshArg).toContain('ssh')
     expect(sshArg).toContain('-p 2222')
-    expect(sshArg).toContain('-i "~/.ssh/id_rsa"')
+    expect(sshArg).toContain(`-i "${homedir()}/.ssh/id_rsa"`)
   })
 
   it('dryRun 模式添加 --dry-run 参数', () => {
