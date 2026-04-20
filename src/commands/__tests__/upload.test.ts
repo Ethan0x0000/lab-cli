@@ -16,6 +16,7 @@ const mockSpinner = {
   fail: vi.fn(),
 }
 const mockOra = vi.fn(() => mockSpinner)
+const mockDim = vi.fn((value: string) => value)
 
 vi.mock('fs', () => ({
   existsSync: mockExistsSync,
@@ -53,6 +54,7 @@ vi.mock('chalk', () => ({
     green: (value: string) => value,
     red: (value: string) => value,
     blue: (value: string) => value,
+    dim: mockDim,
   },
 }))
 
@@ -153,6 +155,18 @@ describe('upload 命令', () => {
     expect(mockUploadFile).toHaveBeenCalledWith('mock-sftp', 'artifacts/model.bin', '/remote/files/model.bin')
     expect(mockDisconnect).toHaveBeenCalledTimes(1)
     expect(mockSyncToRemote).not.toHaveBeenCalled()
+  })
+
+  it('SFTP 提示', async () => {
+    mockStatSync.mockReturnValue({
+      isDirectory: () => false,
+      size: 1024,
+    })
+
+    const program = await setupCommand()
+    await program.parseAsync(['node', 'lab-cli', 'upload', 'artifacts/model.bin'])
+
+    expect(mockDim).toHaveBeenCalledWith('ℹ 使用 SFTP 传输（rsync 不可用或文件较小）')
   })
 
   it('大文件上传时走 rsync 且不带 excludePatterns', async () => {

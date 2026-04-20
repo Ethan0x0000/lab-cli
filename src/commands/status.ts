@@ -49,6 +49,7 @@ export function registerStatusCommand(program: Command): void {
           jobs = parseSqueueJson(result.stdout)
         } catch {
           jobs = parseSqueueFormat(result.stdout)
+          console.log(chalk.dim('ℹ Slurm --json 不可用，已使用文本格式解析'))
         }
 
         if (jobs.length === 0) {

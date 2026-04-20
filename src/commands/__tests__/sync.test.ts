@@ -9,6 +9,7 @@ const mockSpinner = {
   text: '',
 }
 const mockOra = vi.fn(() => mockSpinner)
+const mockDim = vi.fn((value: string) => value)
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
@@ -27,6 +28,7 @@ vi.mock('chalk', () => ({
     green: (value: string) => value,
     red: (value: string) => value,
     blue: (value: string) => value,
+    dim: mockDim,
   },
 }))
 
@@ -141,6 +143,7 @@ describe('sync 命令', () => {
       throw Object.assign(exitError, { code })
     }) as never)
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const { Command } = await import('commander')
     const { registerSyncCommand } = await import('../sync.js')
 
@@ -157,9 +160,12 @@ describe('sync 命令', () => {
 
     expect(mockSpinner.fail).toHaveBeenCalledWith('同步失败')
     expect(errorSpy).toHaveBeenCalledWith('同步失败: rsync exploded')
+    expect(mockDim).toHaveBeenCalledWith('提示: 确认本机已安装 rsync')
+    expect(logSpy).toHaveBeenCalledWith('提示: 确认本机已安装 rsync')
 
     cwdSpy.mockRestore()
     exitSpy.mockRestore()
     errorSpy.mockRestore()
+    logSpy.mockRestore()
   })
 })

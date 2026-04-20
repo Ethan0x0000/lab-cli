@@ -52,6 +52,7 @@ export function registerResourcesCommand(program: Command): void {
         } catch {
           const fallbackResult = await client.exec('sinfo --format="%N %T %c %m %P" --noheader')
           nodes = parseSinfoFormat(fallbackResult.stdout)
+          console.log(chalk.dim('ℹ Slurm --json 不可用，已使用文本格式解析'))
         }
 
         if (options.node) {

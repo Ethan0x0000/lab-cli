@@ -8,6 +8,7 @@ const mockExec = vi.fn()
 const mockDisconnect = vi.fn()
 const mockParseSqueueJson = vi.fn()
 const mockParseSqueueFormat = vi.fn()
+const mockDim = vi.fn((value: string) => value)
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
@@ -36,7 +37,7 @@ vi.mock('chalk', () => ({
     gray: (value: string) => value,
     bold: (value: string) => value,
     blue: (value: string) => value,
-    dim: (value: string) => value,
+    dim: mockDim,
   },
 }))
 
@@ -133,6 +134,18 @@ describe('status 命令', () => {
     expect(mockExec).toHaveBeenCalledWith('squeue --json --jobs=12345')
     expect(mockParseSqueueFormat).toHaveBeenCalledWith('{"jobs":[]}')
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('12345'))
+  })
+
+  it('fallback 提示', async () => {
+    mockParseSqueueJson.mockImplementation(() => {
+      throw new Error('invalid json')
+    })
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const program = await setupCommand()
+
+    await program.parseAsync(['node', 'lab-cli', 'status'])
+
+    expect(mockDim).toHaveBeenCalledWith('ℹ Slurm --json 不可用，已使用文本格式解析')
   })
 
   it('空任务列表时输出无任务提示', async () => {

@@ -6,6 +6,7 @@ const mockExec = vi.fn()
 const mockDisconnect = vi.fn()
 const mockParseSinfoJson = vi.fn()
 const mockParseSinfoFormat = vi.fn()
+const mockDim = vi.fn((value: string) => `[DIM]${value}[/DIM]`)
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
@@ -33,7 +34,7 @@ vi.mock('chalk', () => ({
     red: (value: string) => value,
     gray: (value: string) => value,
     bold: (value: string) => value,
-    dim: (value: string) => `[DIM]${value}[/DIM]`,
+    dim: mockDim,
   },
 }))
 
@@ -149,6 +150,26 @@ describe('resources 命令', () => {
     expect(logSpy.mock.calls.some(([line]) => String(line).includes('node01'))).toBe(true)
 
     logSpy.mockRestore()
+  })
+
+  it('fallback 提示', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const { Command } = await import('commander')
+    const { registerResourcesCommand } = await import('../resources.js')
+
+    mockParseSinfoJson.mockImplementation(() => {
+      throw new Error('bad json')
+    })
+    mockExec
+      .mockResolvedValueOnce({ stdout: 'bad', stderr: '', exitCode: 0 })
+      .mockResolvedValueOnce({ stdout: 'fallback', stderr: '', exitCode: 0 })
+
+    const program = new Command()
+    registerResourcesCommand(program)
+
+    await program.parseAsync(['node', 'test', 'resources'])
+
+    expect(mockDim).toHaveBeenCalledWith('ℹ Slurm --json 不可用，已使用文本格式解析')
   })
 
   it('支持按节点和分区过滤资源结果', async () => {

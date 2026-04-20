@@ -50,6 +50,7 @@ export function registerUploadCommand(program: Command): void {
             const sftp = await client.sftp()
             await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
             client.disconnect()
+            console.log(chalk.dim('ℹ 使用 SFTP 传输（rsync 不可用或文件较小）'))
           } else {
             await syncToRemote({
               localPath,

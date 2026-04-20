@@ -53,6 +53,7 @@ export function registerSyncCommand(program: Command): void {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`同步失败: ${message}`))
+        console.log(chalk.dim('提示: 确认本机已安装 rsync'))
         process.exit(1)
       }
     })
