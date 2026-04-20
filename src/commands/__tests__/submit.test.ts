@@ -14,11 +14,13 @@ vi.mock('../../config/loader.js', () => ({
 }))
 
 vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(() => ({
+  SSHClient: vi.fn(function MockSSHClient() {
+    return {
     connect: mockConnect,
     exec: mockExec,
     disconnect: mockDisconnect,
-  })),
+    }
+  }),
 }))
 
 vi.mock('../../transfer/rsync.js', () => ({

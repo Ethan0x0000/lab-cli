@@ -102,11 +102,13 @@ describe('connect 命令', () => {
       disconnect: vi.fn(),
     }
     const stdoutPipeSpy = vi.spyOn(process.stdin, 'pipe').mockImplementation(((destination: NodeJS.WritableStream) => destination) as typeof process.stdin.pipe)
-    const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((event: NodeJS.Signals, listener: () => void) => process) as typeof process.on)
+    const processOnSpy = vi.spyOn(process, 'on').mockImplementation((() => process) as typeof process.on)
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
 
     vi.mocked(getConfig).mockResolvedValue(baseConfig)
-    vi.mocked(SSHClient).mockImplementation(() => client as never)
+    vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
+      return client as never
+    })
 
     const program = await setupCommand()
     await runConnectCommand(program)
@@ -144,10 +146,12 @@ describe('connect 命令', () => {
       authMethod: 'password',
       privateKeyPath: undefined,
     })
-    vi.mocked(SSHClient).mockImplementation(() => client as never)
+    vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
+      return client as never
+    })
     vi.mocked(inquirer.prompt).mockResolvedValue({ pwd: 'secret' })
     vi.spyOn(process.stdin, 'pipe').mockImplementation(((destination: NodeJS.WritableStream) => destination) as typeof process.stdin.pipe)
-    vi.spyOn(process, 'on').mockImplementation(((event: NodeJS.Signals, listener: () => void) => process) as typeof process.on)
+    vi.spyOn(process, 'on').mockImplementation((() => process) as typeof process.on)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
 
     const program = await setupCommand()
@@ -185,7 +189,9 @@ describe('connect 命令', () => {
     }) as typeof process.exit)
 
     vi.mocked(getConfig).mockResolvedValue(baseConfig)
-    vi.mocked(SSHClient).mockImplementation(() => client as never)
+    vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
+      return client as never
+    })
 
     const program = await setupCommand()
 

@@ -100,7 +100,9 @@ vi.mock('ssh2', async () => {
   }
 
   return {
-    Client: vi.fn(() => new MockClient()),
+    Client: vi.fn(function MockSSH2ClientConstructor() {
+      return new MockClient()
+    }),
   }
 })
 

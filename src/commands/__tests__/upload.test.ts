@@ -35,11 +35,13 @@ vi.mock('../../transfer/sftp.js', () => ({
 }))
 
 vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(() => ({
+  SSHClient: vi.fn(function MockSSHClient() {
+    return {
     connect: mockConnect,
     sftp: mockSftp,
     disconnect: mockDisconnect,
-  })),
+    }
+  }),
 }))
 
 vi.mock('ora', () => ({

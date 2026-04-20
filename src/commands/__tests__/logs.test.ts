@@ -14,12 +14,14 @@ vi.mock('../../config/loader.js', () => ({
 }))
 
 vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(() => ({
+  SSHClient: vi.fn(function MockSSHClient() {
+    return {
     connect: mockConnect,
     exec: mockExec,
     execStream: mockExecStream,
     disconnect: mockDisconnect,
-  })),
+    }
+  }),
 }))
 
 vi.mock('chalk', () => ({
@@ -123,7 +125,7 @@ describe('logs 命令', () => {
   it('follow 模式通过 execStream 跟踪日志', async () => {
     const channel = new MockChannel()
     mockExecStream.mockResolvedValue(channel)
-    const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((event: NodeJS.Signals, listener: () => void) => process) as typeof process.on)
+    const processOnSpy = vi.spyOn(process, 'on').mockImplementation((() => process) as typeof process.on)
     const program = await setupCommand()
 
     await program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--follow'])

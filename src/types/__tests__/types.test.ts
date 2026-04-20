@@ -1,5 +1,5 @@
 import { describe, it, expectTypeOf } from 'vitest'
-import type { GlobalConfig, ProjectConfig, MergedConfig, SlurmJobInfo, SlurmNodeInfo, SSHConnectionOptions, SSHExecResult } from '../index.js'
+import type { GlobalConfig, ProjectConfig, MergedConfig, SlurmJobInfo, SSHConnectionOptions, SSHExecResult } from '../index.js'
 
 describe('TypeScript 类型定义', () => {
   it('GlobalConfig 类型正确导出', () => {
