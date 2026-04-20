@@ -50,7 +50,7 @@ export function registerInitCommand(program: Command): void {
     })
 }
 
-async function initGlobal(): Promise<void> {
+export async function initGlobal(): Promise<void> {
   if (existsSync(GLOBAL_CONFIG_PATH)) {
     const { overwrite } = await inquirer.prompt<OverwriteAnswer>([
       {
@@ -112,7 +112,7 @@ async function initGlobal(): Promise<void> {
   console.log(chalk.green(`✓ 全局配置已写入 ${GLOBAL_CONFIG_PATH}`))
 }
 
-async function initProject(): Promise<void> {
+export async function initProject(): Promise<void> {
   const cwd = process.cwd()
   const labrcPath = join(cwd, '.labrc')
 

@@ -4,6 +4,7 @@ import { dirname, join } from 'path'
 import { Command } from 'commander'
 import { registerInitCommand } from './commands/init.js'
 import { registerDoctorCommand } from './commands/doctor.js'
+import { registerQuickstartCommand } from './commands/quickstart.js'
 import { registerConnectCommand } from './commands/connect.js'
 import { registerSyncCommand } from './commands/sync.js'
 import { registerWatchCommand } from './commands/watch.js'
@@ -36,6 +37,7 @@ program
 
 registerInitCommand(program)
 registerDoctorCommand(program)
+registerQuickstartCommand(program)
 registerConnectCommand(program)
 registerSyncCommand(program)
 registerWatchCommand(program)
