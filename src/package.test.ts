@@ -27,6 +27,6 @@ describe('package metadata', () => {
   })
 
   it('declares the supported Node.js runtime', () => {
-    expect(packageJson.engines?.node).toBe('>=18')
+    expect(packageJson.engines?.node).toBe('>=20')
   })
 })
