@@ -6,12 +6,35 @@
 
 ## 安装
 
+### 从源码仓库安装（推荐给开发或本地试用）
+
 ```bash
 git clone <repository>
 cd lab-cli
 npm install
 npm link
 ```
+
+`npm install` 会通过 `prepare` 自动构建 `dist/cli.js`，所以紧接着执行 `npm link` 就能把 `lab-cli` 暴露到当前用户环境。
+
+如果你的 npm 全局目录是系统路径（例如 `/usr/lib/node_modules`）并且当前用户没有写权限，可以把当前源码目录直接安装到用户级 prefix：
+
+```bash
+npm install -g --prefix "$HOME/.local" .
+"$HOME/.local/bin/lab-cli" --help
+```
+
+如果你希望直接用 `lab-cli` 命令名调用，再把 `$HOME/.local/bin` 加入 `PATH` 即可。
+
+### 验证打包产物
+
+```bash
+npm pack
+npm install -g --prefix "$HOME/.local/share/lab-cli-test" ./lab-cli-0.1.0.tgz
+"$HOME/.local/share/lab-cli-test/bin/lab-cli" --help
+```
+
+如果你只是想在当前仓库里开发和试用，使用上面的源码安装流程即可；只有在验证打包结果或准备发布时，才需要走 `npm pack` 这条路径。
 
 ## 快速开始
 
