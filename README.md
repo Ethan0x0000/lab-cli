@@ -1,4 +1,4 @@
-# lab-cli
+# LabCLI
 
 > 内网训练集群全流程自动化 CLI 工具
 
@@ -12,28 +12,28 @@
 
 ```bash
 git clone <repository>
-cd lab-cli
+cd labcli
 npm install
 npm link
 ```
 
-`npm install` 会通过 `prepare` 自动构建 `dist/cli.js`，所以紧接着执行 `npm link` 就能把 `lab-cli` 暴露到当前用户环境。
+`npm install` 会通过 `prepare` 自动构建 `dist/cli.js`，所以紧接着执行 `npm link` 就能把 `labcli` 暴露到当前用户环境。
 
 如果你的 npm 全局目录是系统路径，例如 `/usr/lib/node_modules`，并且当前用户没有写权限，可以把当前源码目录直接安装到用户级 prefix：
 
 ```bash
 npm install -g --prefix "$HOME/.local" .
-"$HOME/.local/bin/lab-cli" --help
+"$HOME/.local/bin/labcli" --help
 ```
 
-如果你希望直接用 `lab-cli` 命令名调用，再把 `$HOME/.local/bin` 加入 `PATH` 即可。
+如果你希望直接用 `labcli` 命令名调用，再把 `$HOME/.local/bin` 加入 `PATH` 即可。
 
 ### 验证打包产物
 
 ```bash
 npm pack
-npm install -g --prefix "$HOME/.local/share/lab-cli-test" ./lab-cli-0.1.0.tgz
-"$HOME/.local/share/lab-cli-test/bin/lab-cli" --help
+npm install -g --prefix "$HOME/.local/share/labcli-test" ./labcli-0.1.0.tgz
+"$HOME/.local/share/labcli-test/bin/labcli" --help
 ```
 
 如果你只是想在当前仓库里开发和试用，使用上面的源码安装流程即可，只有在验证打包结果或准备发布时，才需要走 `npm pack` 这条路径。
@@ -41,112 +41,112 @@ npm install -g --prefix "$HOME/.local/share/lab-cli-test" ./lab-cli-0.1.0.tgz
 ## 按角色使用
 
 ### 新用户，初次配置
-1. `lab-cli quickstart`，交互式全流程引导
-2. `lab-cli doctor`，检查环境是否就绪
-3. `lab-cli init --global`，手动配置服务器信息
-4. `lab-cli setup`，创建远程目录和 conda 环境
+1. `labcli quickstart`，交互式全流程引导
+2. `labcli doctor`，检查环境是否就绪
+3. `labcli init --global`，手动配置服务器信息
+4. `labcli setup`，创建远程目录和 conda 环境
 
 ### 日常训练工作流
-1. `lab-cli sync` / `lab-cli watch`，同步最新代码
-2. `lab-cli submit train.sh`，提交训练任务
-3. `lab-cli status`，查看任务进度
-4. `lab-cli logs <jobId>`，查看训练日志
+1. `labcli sync` / `labcli watch`，同步最新代码
+2. `labcli submit train.sh`，提交训练任务
+3. `labcli status`，查看任务进度
+4. `labcli logs <jobId>`，查看训练日志
 
 ### 排障
-- `lab-cli doctor`，一键诊断环境问题
-- `lab-cli connect`，直接 SSH 到服务器
-- `lab-cli logs <jobId> --error`，查看错误日志
+- `labcli doctor`，一键诊断环境问题
+- `labcli connect`，直接 SSH 到服务器
+- `labcli logs <jobId> --error`，查看错误日志
 
 ### 资源管理
-- `lab-cli resources`，查看集群空闲 GPU
-- `lab-cli cancel <jobId>`，取消任务
+- `labcli resources`，查看集群空闲 GPU
+- `labcli cancel <jobId>`，取消任务
 
 ## 典型场景
 
 ### 场景一，首次开始新项目
 ```bash
-lab-cli quickstart        # 一键引导完成初始化
+labcli quickstart        # 一键引导完成初始化
 # 或者手动操作：
-lab-cli init --global     # 配置服务器信息，首次使用
-lab-cli init              # 配置项目，每个新项目都要做
-lab-cli setup             # 创建远程环境
-lab-cli sync              # 同步代码
-lab-cli submit train.sh   # 提交第一个训练任务
+labcli init --global     # 配置服务器信息，首次使用
+labcli init              # 配置项目，每个新项目都要做
+labcli setup             # 创建远程环境
+labcli sync              # 同步代码
+labcli submit train.sh   # 提交第一个训练任务
 ```
 
 ### 场景二，日常提交训练
 ```bash
-lab-cli sync                                # 同步最新代码
-lab-cli submit train.sh --sync              # 同步并提交，合一步
-lab-cli submit train.sh --preset multi-gpu  # 使用 4 GPU 预设
-lab-cli status                              # 查看任务状态
+labcli sync                                # 同步最新代码
+labcli submit train.sh --sync              # 同步并提交，合一步
+labcli submit train.sh --preset multi-gpu  # 使用 4 GPU 预设
+labcli status                              # 查看任务状态
 ```
 
 ### 场景三，换机器后恢复
 ```bash
-lab-cli init --global     # 重新配置服务器信息
-lab-cli doctor            # 验证环境是否正常
+labcli init --global     # 重新配置服务器信息
+labcli doctor            # 验证环境是否正常
 ```
 
 ### 场景四，只同步不提交
 ```bash
-lab-cli sync              # 一次性同步
-lab-cli watch             # 持续监听并自动同步
+labcli sync              # 一次性同步
+labcli watch             # 持续监听并自动同步
 ```
 
 ### 场景五，使用预设快速提交
 ```bash
-lab-cli submit --help                     # 查看可用选项
-lab-cli submit train.sh --preset debug    # 调试，1 GPU，1 小时
-lab-cli submit train.sh --preset single-gpu  # 单 GPU，1 GPU，24 小时
-lab-cli submit train.sh --preset multi-gpu   # 多 GPU，4 GPU，48 小时
-lab-cli submit train.sh --preset full-node   # 整节点，8 GPU，72 小时
-lab-cli submit train.sh --guide              # 交互式选择预设
+labcli submit --help                     # 查看可用选项
+labcli submit train.sh --preset debug    # 调试，1 GPU，1 小时
+labcli submit train.sh --preset single-gpu  # 单 GPU，1 GPU，24 小时
+labcli submit train.sh --preset multi-gpu   # 多 GPU，4 GPU，48 小时
+labcli submit train.sh --preset full-node   # 整节点，8 GPU，72 小时
+labcli submit train.sh --guide              # 交互式选择预设
 ```
 
 ## 命令速查
 
 | 命令 | 说明 | 常用参数 |
 |------|------|---------|
-| `lab-cli init` | 初始化配置 | `--global`，全局配置 |
-| `lab-cli quickstart` | 交互式新手引导 | 无 |
-| `lab-cli doctor` | 环境诊断 | 无 |
-| `lab-cli connect` | SSH 到服务器 | 无 |
-| `lab-cli sync` | 同步代码 | `--dry-run`，`--exclude` |
-| `lab-cli watch` | 监听并自动同步 | `--no-initial-sync` |
-| `lab-cli setup` | 创建远程环境 | `--skip-conda` |
-| `lab-cli upload` | 上传文件或目录 | `<localPath> [remotePath]` |
-| `lab-cli submit` | 提交训练任务 | `--preset`，`--guide`，`--sync`，`--dry-run` |
-| `lab-cli status` | 查看任务状态 | `--job-id`，`--all` |
-| `lab-cli logs` | 查看训练日志 | `-f`，`--tail`，`--error` |
-| `lab-cli cancel` | 取消任务 | `--all` |
-| `lab-cli resources` | 查看集群资源 | `--node`，`--partition` |
+| `labcli init` | 初始化配置 | `--global`，全局配置 |
+| `labcli quickstart` | 交互式新手引导 | 无 |
+| `labcli doctor` | 环境诊断 | 无 |
+| `labcli connect` | SSH 到服务器 | 无 |
+| `labcli sync` | 同步代码 | `--dry-run`，`--exclude` |
+| `labcli watch` | 监听并自动同步 | `--no-initial-sync` |
+| `labcli setup` | 创建远程环境 | `--skip-conda` |
+| `labcli upload` | 上传文件或目录 | `<localPath> [remotePath]` |
+| `labcli submit` | 提交训练任务 | `--preset`，`--guide`，`--sync`，`--dry-run` |
+| `labcli status` | 查看任务状态 | `--job-id`，`--all` |
+| `labcli logs` | 查看训练日志 | `-f`，`--tail`，`--error` |
+| `labcli cancel` | 取消任务 | `--all` |
+| `labcli resources` | 查看集群资源 | `--node`，`--partition` |
 
 ## 快速开始
 
 ```bash
 # 1. 初始化全局配置，填写服务器信息
-lab-cli init --global
+labcli init --global
 
 # 2. 初始化项目配置
-lab-cli init
+labcli init
 
 # 3. 创建远程目录和 conda 环境
-lab-cli setup
+labcli setup
 
 # 4. 同步代码到远程服务器
-lab-cli sync
+labcli sync
 
 # 5. 提交训练任务
-lab-cli submit train.sh
+labcli submit train.sh
 
 # 6. 查看训练日志
-lab-cli logs <jobId>
+labcli logs <jobId>
 ```
 
 ## 命令参考
 
-### `lab-cli init [--global]`
+### `labcli init [--global]`
 
 初始化配置。
 
@@ -154,35 +154,35 @@ lab-cli logs <jobId>
 - 不带选项时，初始化项目配置，写入当前目录 `.labrc`
 
 ```bash
-lab-cli init --global
-lab-cli init
+labcli init --global
+labcli init
 ```
 
-### `lab-cli doctor`
+### `labcli doctor`
 
 检查运行环境，诊断潜在问题。
 
 ```bash
-lab-cli doctor
+labcli doctor
 ```
 
-### `lab-cli quickstart`
+### `labcli quickstart`
 
 交互式引导完成项目初始化和首次同步。
 
 ```bash
-lab-cli quickstart
+labcli quickstart
 ```
 
-### `lab-cli connect`
+### `labcli connect`
 
 建立 SSH 连接，进入交互式 shell。
 
 ```bash
-lab-cli connect
+labcli connect
 ```
 
-### `lab-cli sync [--dry-run] [--exclude <patterns...>]`
+### `labcli sync [--dry-run] [--exclude <patterns...>]`
 
 将本地代码同步到远程服务器，底层使用 rsync。
 
@@ -190,42 +190,42 @@ lab-cli connect
 - `--exclude <patterns>`，追加排除规则
 
 ```bash
-lab-cli sync
-lab-cli sync --dry-run
-lab-cli sync --exclude "*.log" "tmp/"
+labcli sync
+labcli sync --dry-run
+labcli sync --exclude "*.log" "tmp/"
 ```
 
-### `lab-cli watch [--no-initial-sync]`
+### `labcli watch [--no-initial-sync]`
 
 监听文件变化，自动同步。
 
 - `--no-initial-sync`，跳过启动时的初始全量同步
 
 ```bash
-lab-cli watch
+labcli watch
 ```
 
-### `lab-cli setup [--skip-conda]`
+### `labcli setup [--skip-conda]`
 
 在远程创建训练目录和 conda 环境。
 
 - `--skip-conda`，只创建目录，不创建 conda 环境
 
 ```bash
-lab-cli setup
-lab-cli setup --skip-conda
+labcli setup
+labcli setup --skip-conda
 ```
 
-### `lab-cli upload <localPath> [remotePath]`
+### `labcli upload <localPath> [remotePath]`
 
 上传文件或目录到远程服务器。
 
 ```bash
-lab-cli upload ./data/dataset.zip
-lab-cli upload ./data /home/user/training/data
+labcli upload ./data/dataset.zip
+labcli upload ./data /home/user/training/data
 ```
 
-### `lab-cli submit <script> [options]`
+### `labcli submit <script> [options]`
 
 提交 Slurm 训练任务。
 
@@ -240,24 +240,24 @@ lab-cli upload ./data /home/user/training/data
 - `--guide`，交互式选择预设
 
 ```bash
-lab-cli submit train.sh
-lab-cli submit train.sh --partition gpu --gpus 4 --time 24:00:00
-lab-cli submit train.sh --sync --name my_training
-lab-cli submit train.sh --preset single-gpu
-lab-cli submit train.sh --guide
+labcli submit train.sh
+labcli submit train.sh --partition gpu --gpus 4 --time 24:00:00
+labcli submit train.sh --sync --name my_training
+labcli submit train.sh --preset single-gpu
+labcli submit train.sh --guide
 ```
 
-### `lab-cli status [--job-id <id>] [--all]`
+### `labcli status [--job-id <id>] [--all]`
 
 查看 Slurm 任务状态。
 
 ```bash
-lab-cli status
-lab-cli status --job-id 12345
-lab-cli status --all
+labcli status
+labcli status --job-id 12345
+labcli status --all
 ```
 
-### `lab-cli logs [jobId] [-f] [--tail <n>]`
+### `labcli logs [jobId] [-f] [--tail <n>]`
 
 查看训练日志。
 
@@ -266,28 +266,28 @@ lab-cli status --all
 - `--error`，查看 stderr 日志
 
 ```bash
-lab-cli logs 12345
-lab-cli logs 12345 --follow
-lab-cli logs 12345 --tail 100
+labcli logs 12345
+labcli logs 12345 --follow
+labcli logs 12345 --tail 100
 ```
 
-### `lab-cli cancel [jobId] [--all]`
+### `labcli cancel [jobId] [--all]`
 
 取消 Slurm 任务。
 
 ```bash
-lab-cli cancel 12345
-lab-cli cancel --all
+labcli cancel 12345
+labcli cancel --all
 ```
 
-### `lab-cli resources [--node <name>] [--partition <name>]`
+### `labcli resources [--node <name>] [--partition <name>]`
 
 查看集群资源和节点状态。
 
 ```bash
-lab-cli resources
-lab-cli resources --partition gpu
-lab-cli resources --node node01
+labcli resources
+labcli resources --partition gpu
+labcli resources --node node01
 ```
 
 ## 配置文件
@@ -297,9 +297,9 @@ lab-cli resources --node node01
 参见 [`config.example.yaml`](./config.example.yaml) 获取带注释的完整示例。
 
 ```yaml
-# lab-cli 全局配置示例文件
+# LabCLI 全局配置示例文件
 # 将此文件复制到 ~/.lab-cli/config.yaml 并填入实际的服务器信息
-# 或运行 `lab-cli init --global` 进行交互式初始化
+# 或运行 `labcli init --global` 进行交互式初始化
 
 # 服务器地址，必填，可以是地址或域名
 host: your-server-host
@@ -328,9 +328,9 @@ defaultPartition: gpu
 参见 [`.labrc.example`](./.labrc.example) 获取带注释的完整示例。
 
 ```yaml
-# lab-cli 项目配置示例文件
+# LabCLI 项目配置示例文件
 # 将此文件复制到项目根目录并重命名为 .labrc 或 .labrc.yaml
-# 或运行 `lab-cli init` 进行交互式初始化
+# 或运行 `labcli init` 进行交互式初始化
 
 # 项目名称，必填
 name: my-training-project
@@ -385,16 +385,16 @@ A: 默认使用文件事件监听，不是轮询，CPU 占用很低。
 
 **Q: 如何更新配置？**
 
-A: 重新运行 `lab-cli init --global` 或 `lab-cli init`，按提示覆盖即可。
+A: 重新运行 `labcli init --global` 或 `labcli init`，按提示覆盖即可。
 
 **Q: 环境诊断怎么用？**
 
-A: 直接运行 `lab-cli doctor`。
+A: 直接运行 `labcli doctor`。
 
 **Q: 如何快速上手？**
 
-A: 直接运行 `lab-cli quickstart`。
+A: 直接运行 `labcli quickstart`。
 
 **Q: 有没有预设的资源配置？**
 
-A: 可以用 `lab-cli submit --preset single-gpu`，或者运行 `lab-cli submit --guide` 交互选择。
+A: 可以用 `labcli submit --preset single-gpu`，或者运行 `labcli submit --guide` 交互选择。

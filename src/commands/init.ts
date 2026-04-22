@@ -33,7 +33,7 @@ type ProjectAnswers = {
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('初始化 lab-cli 配置')
+    .description('初始化 LabCLI 配置')
     .option('--global', '初始化全局配置')
     .action(async (options) => {
       try {

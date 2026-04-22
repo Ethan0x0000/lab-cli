@@ -112,7 +112,7 @@ describe('status 命令', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'status'])
+    await program.parseAsync(['node', 'labcli', 'status'])
 
     expect(mockExec).toHaveBeenCalledWith("squeue --json --user='alice'")
     expect(mockParseSqueueJson).toHaveBeenCalledWith('{"jobs":[]}')
@@ -129,7 +129,7 @@ describe('status 命令', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'status', '--all', '--job-id', '12345'])
+    await program.parseAsync(['node', 'labcli', 'status', '--all', '--job-id', '12345'])
 
     expect(mockExec).toHaveBeenCalledWith("squeue --json --jobs='12345'")
     expect(mockParseSqueueFormat).toHaveBeenCalledWith('{"jobs":[]}')
@@ -143,7 +143,7 @@ describe('status 命令', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'status'])
+    await program.parseAsync(['node', 'labcli', 'status'])
 
     expect(mockDim).toHaveBeenCalledWith('ℹ Slurm --json 不可用，已使用文本格式解析')
   })
@@ -153,7 +153,7 @@ describe('status 命令', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'status'])
+    await program.parseAsync(['node', 'labcli', 'status'])
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('当前没有活跃任务'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('submit'))
@@ -186,7 +186,7 @@ describe('status 命令', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'status'])
+    await program.parseAsync(['node', 'labcli', 'status'])
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('查询时间:'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('用户: alice'))
@@ -199,7 +199,7 @@ describe('status 命令', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'status'])
+    await program.parseAsync(['node', 'labcli', 'status'])
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('共 2 个任务'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('查询于'))

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { execSync } from 'child_process'
 
-describe('lab-cli CLI', () => {
+describe('labcli CLI', () => {
   it('--help 输出包含所有 11 个子命令', () => {
     const output = execSync('npx tsx src/cli.ts --help', {
       encoding: 'utf-8',
@@ -14,12 +14,12 @@ describe('lab-cli CLI', () => {
     }
   })
 
-  it('--help 输出包含 lab-cli', () => {
+  it('--help 输出包含 labcli', () => {
     const output = execSync('npx tsx src/cli.ts --help', {
       encoding: 'utf-8',
       cwd: process.cwd(),
     })
-    expect(output).toContain('lab-cli')
+    expect(output).toContain('labcli')
   })
 
   it('--version 输出版本号', () => {

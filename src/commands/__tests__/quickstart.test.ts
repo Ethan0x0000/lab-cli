@@ -76,7 +76,7 @@ async function createProgram(): Promise<Command> {
 
 async function runQuickstart(args: string[] = []): Promise<void> {
   const program = await createProgram()
-  await program.parseAsync(['node', 'lab-cli', 'quickstart', ...args])
+    await program.parseAsync(['node', 'labcli', 'quickstart', ...args])
 }
 
 describe('quickstart 命令', () => {

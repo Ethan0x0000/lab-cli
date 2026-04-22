@@ -63,7 +63,7 @@ async function setupCommand(): Promise<Command> {
 }
 
 async function runConnectCommand(program: Command): Promise<void> {
-  await program.parseAsync(['node', 'lab-cli', 'connect'])
+    await program.parseAsync(['node', 'labcli', 'connect'])
 }
 
 describe('connect 命令', () => {

@@ -31,7 +31,7 @@ try {
 const program = new Command()
 
 program
-  .name('lab-cli')
+  .name('labcli')
   .description('内网训练集群全流程自动化 CLI 工具')
   .version(version)
 

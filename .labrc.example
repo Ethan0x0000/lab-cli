@@ -1,6 +1,6 @@
-# lab-cli 项目配置示例文件
+# LabCLI 项目配置示例文件
 # 将此文件复制到项目根目录并重命名为 .labrc 或 .labrc.yaml
-# 或运行 `lab-cli init` 进行交互式初始化
+# 或运行 `labcli init` 进行交互式初始化
 
 # 项目名称（必填）
 # 用于标识和日志输出

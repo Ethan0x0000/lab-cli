@@ -119,7 +119,7 @@ describe('upload 命令', () => {
     })
 
     const program = await setupCommand()
-    await program.parseAsync(['node', 'lab-cli', 'upload', 'dataset'])
+    await program.parseAsync(['node', 'labcli', 'upload', 'dataset'])
 
     expect(mockOra).toHaveBeenCalledWith('正在上传 dataset 到 /data/demo/data...')
     expect(mockSyncToRemote).toHaveBeenCalledWith({
@@ -141,7 +141,7 @@ describe('upload 命令', () => {
     })
 
     const program = await setupCommand()
-    await program.parseAsync(['node', 'lab-cli', 'upload', 'artifacts/model.bin', '/remote/files'])
+    await program.parseAsync(['node', 'labcli', 'upload', 'artifacts/model.bin', '/remote/files'])
 
     expect(mockConnect).toHaveBeenCalledWith({
       host: '10.0.0.1',
@@ -163,7 +163,7 @@ describe('upload 命令', () => {
     })
 
     const program = await setupCommand()
-    await program.parseAsync(['node', 'lab-cli', 'upload', 'artifacts/model.bin'])
+    await program.parseAsync(['node', 'labcli', 'upload', 'artifacts/model.bin'])
 
     expect(mockDim).toHaveBeenCalledWith('ℹ 使用 SFTP 传输（rsync 不可用或文件较小）')
   })
@@ -175,7 +175,7 @@ describe('upload 命令', () => {
     })
 
     const program = await setupCommand()
-    await program.parseAsync(['node', 'lab-cli', 'upload', 'big-dataset.tar'])
+    await program.parseAsync(['node', 'labcli', 'upload', 'big-dataset.tar'])
 
     expect(mockSyncToRemote).toHaveBeenCalledWith({
       localPath: 'big-dataset.tar',
@@ -197,7 +197,7 @@ describe('upload 命令', () => {
     }) as typeof process.exit)
     const program = await setupCommand()
 
-    await expect(program.parseAsync(['node', 'lab-cli', 'upload', 'missing-path'])).rejects.toMatchObject({ code: 1 })
+    await expect(program.parseAsync(['node', 'labcli', 'upload', 'missing-path'])).rejects.toMatchObject({ code: 1 })
 
     expect(errorSpy).toHaveBeenNthCalledWith(1, '路径不存在: missing-path')
     expect(errorSpy).toHaveBeenNthCalledWith(2, '上传失败: EXIT:1')

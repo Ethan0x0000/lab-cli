@@ -105,7 +105,7 @@ describe('logs 命令', () => {
     const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--tail', '20'])
+    await program.parseAsync(['node', 'labcli', 'logs', '12345', '--tail', '20'])
 
     expect(mockExec).toHaveBeenNthCalledWith(1, "scontrol show job '12345'")
     expect(mockExec).toHaveBeenNthCalledWith(2, "tail -n '20' '/tmp/slurm/12345.out'")
@@ -116,7 +116,7 @@ describe('logs 命令', () => {
     const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--error'])
+    await program.parseAsync(['node', 'labcli', 'logs', '12345', '--error'])
 
     expect(mockExec).toHaveBeenNthCalledWith(2, "tail -n '50' '/tmp/slurm/12345.err'")
     expect(writeSpy).toHaveBeenCalled()
@@ -138,7 +138,7 @@ describe('logs 命令', () => {
     }) as typeof process.on))
     const program = await setupCommand()
 
-    const parsePromise = program.parseAsync(['node', 'lab-cli', 'logs', '12345', '--follow'])
+    const parsePromise = program.parseAsync(['node', 'labcli', 'logs', '12345', '--follow'])
     await sigintReady
     channel.emit('close')
     await parsePromise
@@ -152,7 +152,7 @@ describe('logs 命令', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const program = await setupCommand()
 
-    await program.parseAsync(['node', 'lab-cli', 'logs'])
+    await program.parseAsync(['node', 'labcli', 'logs'])
 
     expect(errorSpy).toHaveBeenNthCalledWith(1, '请指定 jobId')
     expect(errorSpy).toHaveBeenNthCalledWith(2, '查看日志失败: 请指定 jobId')

@@ -67,7 +67,7 @@ describe('init 命令', () => {
 
   async function runInit(args: string[] = []): Promise<void> {
     const program = await createProgram()
-    await program.parseAsync(['node', 'lab-cli', 'init', ...args])
+    await program.parseAsync(['node', 'labcli', 'init', ...args])
   }
 
   it('注册 init 子命令及 --global 选项', async () => {
@@ -75,7 +75,7 @@ describe('init 命令', () => {
     const initCommand = program.commands.find((command) => command.name() === 'init')
 
     expect(initCommand).toBeDefined()
-    expect(initCommand?.description()).toBe('初始化 lab-cli 配置')
+    expect(initCommand?.description()).toBe('初始化 LabCLI 配置')
     expect(initCommand?.options.some((option) => option.long === '--global')).toBe(true)
   })
 

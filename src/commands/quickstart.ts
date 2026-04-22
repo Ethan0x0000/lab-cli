@@ -28,8 +28,8 @@ export function registerQuickstartCommand(program: Command): void {
     .description('交互式引导完成项目初始化和首次同步')
     .action(async () => {
       try {
-        console.log(chalk.bold('🚀 欢迎使用 lab-cli 快速上手向导'))
-        console.log('lab-cli 将帮助你完成以下步骤：')
+      console.log(chalk.bold('🚀 欢迎使用 LabCLI 快速上手向导'))
+      console.log('LabCLI 将帮助你完成以下步骤：')
         console.log('1. 检查环境 · 2. 全局配置 · 3. 项目配置 · 4. 远程环境 · 5. 代码同步')
         console.log('')
 
@@ -116,7 +116,7 @@ export function registerQuickstartCommand(program: Command): void {
             }
           } catch (error) {
             console.log(chalk.yellow(`远程环境创建跳过: ${error instanceof Error ? error.message : String(error)}`))
-            console.log(chalk.dim('可稍后运行 lab-cli setup'))
+      console.log(chalk.dim('可稍后运行 labcli setup'))
           }
         } else {
           console.log(chalk.yellow('已跳过远程环境创建'))
@@ -151,7 +151,7 @@ export function registerQuickstartCommand(program: Command): void {
             spinner.succeed(chalk.green('✓ 代码同步完成'))
           } catch (error) {
             console.log(chalk.yellow(`同步跳过: ${error instanceof Error ? error.message : String(error)}`))
-            console.log(chalk.dim('可稍后运行 lab-cli sync'))
+      console.log(chalk.dim('可稍后运行 labcli sync'))
           }
         } else {
           console.log(chalk.yellow('已跳过代码同步'))
@@ -160,10 +160,10 @@ export function registerQuickstartCommand(program: Command): void {
 
         printSeparator()
         console.log(chalk.green('✓ 初始化完成！接下来：'))
-        console.log('• lab-cli sync     同步代码')
-        console.log('• lab-cli submit <script>  提交训练任务')
-        console.log('• lab-cli status   查看任务状态')
-        console.log('• lab-cli doctor   检查环境')
+      console.log('• labcli sync     同步代码')
+      console.log('• labcli submit <script>  提交训练任务')
+      console.log('• labcli status   查看任务状态')
+      console.log('• labcli doctor   检查环境')
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`快速上手失败: ${msg}`))

@@ -71,7 +71,7 @@ export function registerResourcesCommand(program: Command): void {
         }
 
         if (nodes.length === 0) {
-          console.log(chalk.yellow('没有找到匹配的节点 — 用 lab-cli resources 查看所有节点，或检查 --node/--partition 参数'))
+        console.log(chalk.yellow('没有找到匹配的节点 — 用 labcli resources 查看所有节点，或检查 --node/--partition 参数'))
           return
         }
 

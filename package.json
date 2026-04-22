@@ -1,10 +1,10 @@
 {
-  "name": "lab-cli",
+  "name": "labcli",
   "version": "0.1.0",
   "description": "",
   "type": "module",
   "bin": {
-    "lab-cli": "./dist/cli.js"
+    "labcli": "./dist/cli.js"
   },
   "files": [
     "dist",

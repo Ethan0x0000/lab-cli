@@ -1,6 +1,6 @@
-# lab-cli 全局配置示例文件
+# LabCLI 全局配置示例文件
 # 将此文件复制到 ~/.lab-cli/config.yaml 并填入实际的服务器信息
-# 或运行 `lab-cli init --global` 进行交互式初始化
+# 或运行 `labcli init --global` 进行交互式初始化
 
 # 服务器地址（必填）
 # 可以是 IP 地址或域名

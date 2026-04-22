@@ -14,7 +14,7 @@ export async function loadGlobalConfig(): Promise<GlobalConfig> {
   const globalConfigPath = getGlobalConfigPath()
 
   if (!existsSync(globalConfigPath)) {
-    throw new Error('全局配置不存在。请先运行 lab-cli init --global 初始化配置')
+    throw new Error('全局配置不存在。请先运行 labcli init --global 初始化配置')
   }
 
   const content = readFileSync(globalConfigPath, 'utf-8')
@@ -56,7 +56,7 @@ export async function mergeConfig(
   projectConfig: ProjectConfig | null,
 ): Promise<MergedConfig> {
   if (!projectConfig) {
-    throw new Error('项目配置不存在。请先运行 lab-cli init 初始化项目配置')
+      throw new Error('项目配置不存在。请先运行 labcli init 初始化项目配置')
   }
 
   return {

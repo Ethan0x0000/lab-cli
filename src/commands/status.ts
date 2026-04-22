@@ -73,7 +73,7 @@ export function registerStatusCommand(program: Command): void {
         }
 
         if (jobs.length === 0) {
-          console.log(chalk.yellow(`${config.username} 当前没有活跃任务 — 用 lab-cli submit <script> 提交新任务`))
+        console.log(chalk.yellow(`${config.username} 当前没有活跃任务 — 用 labcli submit <script> 提交新任务`))
           return
         }
 

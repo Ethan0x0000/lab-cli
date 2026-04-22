@@ -200,7 +200,7 @@ describe('resources 命令', () => {
 
     await program.parseAsync(['node', 'test', 'resources', '--partition', 'gpu'])
 
-    expect(logSpy).toHaveBeenCalledWith('没有找到匹配的节点 — 用 lab-cli resources 查看所有节点，或检查 --node/--partition 参数')
+    expect(logSpy).toHaveBeenCalledWith('没有找到匹配的节点 — 用 labcli resources 查看所有节点，或检查 --node/--partition 参数')
     expect(mockDisconnect).toHaveBeenCalled()
 
     logSpy.mockRestore()

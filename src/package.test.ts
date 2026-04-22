@@ -22,7 +22,7 @@ describe('package metadata', () => {
   })
 
   it('exposes only the built CLI entry instead of a library main', () => {
-    expect(packageJson.bin).toEqual({ 'lab-cli': './dist/cli.js' })
+    expect(packageJson.bin).toEqual({ labcli: './dist/cli.js' })
     expect(packageJson.main).toBeUndefined()
   })
 
