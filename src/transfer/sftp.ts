@@ -27,6 +27,55 @@ export async function uploadFile(
   })
 }
 
+function statRemotePath(sftp: SFTPWrapper, remotePath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    sftp.stat(remotePath, (err) => {
+      resolve(!err)
+    })
+  })
+}
+
+function mkdirRemotePath(sftp: SFTPWrapper, remotePath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    sftp.mkdir(remotePath, (err) => {
+      if (!err) {
+        resolve()
+        return
+      }
+
+      const errno = err as NodeJS.ErrnoException
+      if (errno.code === 'EEXIST') {
+        resolve()
+        return
+      }
+
+      reject(err)
+    })
+  })
+}
+
+export async function ensureRemoteDirectory(
+  sftp: SFTPWrapper,
+  remoteDir: string,
+): Promise<void> {
+  const normalized = remoteDir.replace(/\\/g, '/').replace(/\/+$/g, '')
+  if (!normalized || normalized === '/') {
+    return
+  }
+
+  const isAbsolute = normalized.startsWith('/')
+  const parts = normalized.split('/').filter(Boolean)
+  let current = isAbsolute ? '/' : ''
+
+  for (const part of parts) {
+    current = current === '/' ? `/${part}` : (current ? `${current}/${part}` : part)
+    const exists = await statRemotePath(sftp, current)
+    if (!exists) {
+      await mkdirRemotePath(sftp, current)
+    }
+  }
+}
+
 export async function uploadDirectory(
   sftp: SFTPWrapper,
   localDir: string,

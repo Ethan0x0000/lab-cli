@@ -6,8 +6,9 @@ import ora from 'ora'
 import { getConfig } from '../config/loader.js'
 import { SSHClient } from '../ssh/client.js'
 import { syncToRemote } from '../transfer/rsync.js'
-import { uploadFile } from '../transfer/sftp.js'
+import { ensureRemoteDirectory, uploadFile } from '../transfer/sftp.js'
 import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import type { SSHConnectionOptions } from '../types/index.js'
 
 const SMALL_FILE_THRESHOLD = 100 * 1024 * 1024 // 100MB
 
@@ -25,6 +26,14 @@ export function registerUploadCommand(program: Command): void {
         const config = await getConfig()
         const targetPath = remotePath ?? `${config.remotePath}/data`
         const stat = statSync(localPath)
+        const useSftpForSmallFile = !stat.isDirectory() && stat.size < SMALL_FILE_THRESHOLD
+        let sshOptions: SSHConnectionOptions | undefined
+
+        // Prompt password before spinner to avoid hidden interactive input in terminals.
+        if (useSftpForSmallFile) {
+          sshOptions = await buildSSHOptions(config)
+        }
+
         const spinner = ora(`正在上传 ${localPath} 到 ${targetPath}...`).start()
 
         try {
@@ -41,8 +50,11 @@ export function registerUploadCommand(program: Command): void {
           } else if (stat.size < SMALL_FILE_THRESHOLD) {
             const client = new SSHClient()
             try {
-              await client.connect(await buildSSHOptions(config))
+              spinner.text = '正在建立 SSH 连接...'
+              await client.connect(sshOptions ?? await buildSSHOptions(config))
+              spinner.text = '正在通过 SFTP 上传文件...'
               const sftp = await client.sftp()
+              await ensureRemoteDirectory(sftp, targetPath)
               await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
             } finally {
               client.disconnect()

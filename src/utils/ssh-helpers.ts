@@ -11,11 +11,17 @@ export async function buildSSHOptions(config: MergedConfig): Promise<SSHConnecti
   }
 
   if (config.authMethod === 'password') {
+    const envPassword = process.env.LABCLI_SSH_PASSWORD
+    if (envPassword) {
+      options.password = envPassword
+      return options
+    }
+
     const { password } = await inquirer.prompt<{ password: string }>([
       {
         type: 'password',
         name: 'password',
-        message: '请输入 SSH 密码:',
+        message: '请输入 SSH 密码（或设置 LABCLI_SSH_PASSWORD）:',
         mask: '*',
       },
     ])

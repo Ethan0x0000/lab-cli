@@ -7,6 +7,7 @@ const mockStatSync = vi.fn()
 const mockGetConfig = vi.fn()
 const mockSyncToRemote = vi.fn()
 const mockUploadFile = vi.fn()
+const mockEnsureRemoteDirectory = vi.fn()
 const mockConnect = vi.fn()
 const mockSftp = vi.fn()
 const mockDisconnect = vi.fn()
@@ -33,6 +34,7 @@ vi.mock('../../transfer/rsync.js', () => ({
 
 vi.mock('../../transfer/sftp.js', () => ({
   uploadFile: mockUploadFile,
+  ensureRemoteDirectory: mockEnsureRemoteDirectory,
 }))
 
 vi.mock('../../ssh/client.js', () => ({
@@ -96,6 +98,7 @@ describe('upload 命令', () => {
     mockSftp.mockResolvedValue('mock-sftp')
     mockDisconnect.mockReturnValue(undefined)
     mockUploadFile.mockResolvedValue(undefined)
+    mockEnsureRemoteDirectory.mockResolvedValue(undefined)
     mockSyncToRemote.mockResolvedValue({
       filesTransferred: 1,
       bytesTransferred: 128,
@@ -151,6 +154,7 @@ describe('upload 命令', () => {
       privateKeyPath: '~/.ssh/id_rsa',
     })
     expect(mockSftp).toHaveBeenCalledTimes(1)
+    expect(mockEnsureRemoteDirectory).toHaveBeenCalledWith('mock-sftp', '/remote/files')
     expect(mockUploadFile).toHaveBeenCalledWith('mock-sftp', 'artifacts/model.bin', '/remote/files/model.bin')
     expect(mockDisconnect).toHaveBeenCalledTimes(1)
     expect(mockSyncToRemote).not.toHaveBeenCalled()
