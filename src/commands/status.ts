@@ -1,10 +1,10 @@
 import type { Command } from 'commander'
 import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
 import { parseSqueueFormat, parseSqueueJson } from '../slurm/parser.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
 import { shellQuote } from '../utils/shell.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 import type { SlurmJobInfo } from '../types/index.js'
 
 function colorizeState(state: string): string {
@@ -28,12 +28,9 @@ export function registerStatusCommand(program: Command): void {
     .option('--job-id <id>', '查看特定任务详情')
     .option('--all', '查看所有用户的任务')
     .action(async (options) => {
-      let client: SSHClient | null = null
-
       try {
         const config = await getConfig()
-        client = new SSHClient()
-        await client.connect(await buildSSHOptions(config))
+        const client = await sshManager.getConnection(config)
 
         let squeueCmd = 'squeue --json'
         if (!options.all) squeueCmd += ` --user=${shellQuote(config.username)}`
@@ -112,11 +109,7 @@ export function registerStatusCommand(program: Command): void {
         // Print footer
         console.log(chalk.dim(`共 ${jobs.length} 个任务 | 查询于 ${new Date().toLocaleTimeString('zh-CN')}`))
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`获取状态失败: ${msg}`))
-        process.exitCode = 1
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '获取状态失败')
       }
     })
 }
