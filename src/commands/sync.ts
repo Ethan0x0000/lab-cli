@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import ora from 'ora'
 import { getConfig } from '../config/loader.js'
 import { syncToRemote } from '../transfer/rsync.js'
+import { handleCliError } from '../utils/errors.js'
 
 export function registerSyncCommand(program: Command): void {
   program
@@ -51,8 +52,7 @@ export function registerSyncCommand(program: Command): void {
           throw error
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`同步失败: ${message}`))
+        handleCliError(error, '同步失败')
         console.log(chalk.dim('提示: 确认本机已安装 rsync'))
         process.exitCode = 1
       }

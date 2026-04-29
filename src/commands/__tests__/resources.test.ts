@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetConfig = vi.fn()
-const mockConnect = vi.fn()
 const mockExec = vi.fn()
-const mockDisconnect = vi.fn()
+const mockSshManagerGetConnection = vi.fn()
 const mockParseSinfoJson = vi.fn()
 const mockParseSinfoFormat = vi.fn()
 const mockDim = vi.fn((value: string) => `[DIM]${value}[/DIM]`)
@@ -12,13 +11,15 @@ vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    exec: mockExec,
-    disconnect: mockDisconnect,
-    }
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockSshManagerGetConnection,
+  },
+}))
+
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: vi.fn((error, context) => {
+    throw new Error(`${context}: ${error instanceof Error ? error.message : String(error)}`)
   }),
 }))
 
@@ -84,10 +85,12 @@ describe('resources 命令', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetConfig.mockResolvedValue(createMockConfig())
-    mockConnect.mockResolvedValue(undefined)
     mockExec.mockResolvedValue({ stdout: '{}', stderr: '', exitCode: 0 })
     mockParseSinfoJson.mockReturnValue(createNodes())
     mockParseSinfoFormat.mockReturnValue(createNodes())
+    mockSshManagerGetConnection.mockResolvedValue({
+      exec: mockExec,
+    })
   })
 
   it('注册 resources 命令及其过滤选项', async () => {
@@ -121,7 +124,6 @@ describe('resources 命令', () => {
     expect(logSpy.mock.calls.some(([line]) => String(line).includes('CPU(用/总)'))).toBe(true)
     expect(logSpy.mock.calls.some(([line]) => String(line).includes('node01'))).toBe(true)
     expect(logSpy.mock.calls.some(([line]) => String(line).includes('空闲 GPU 总计: 3'))).toBe(true)
-    expect(mockDisconnect).toHaveBeenCalled()
 
     logSpy.mockRestore()
   })
@@ -201,7 +203,6 @@ describe('resources 命令', () => {
     await program.parseAsync(['node', 'test', 'resources', '--partition', 'gpu'])
 
     expect(logSpy).toHaveBeenCalledWith('没有找到匹配的节点 — 用 labcli resources 查看所有节点，或检查 --node/--partition 参数')
-    expect(mockDisconnect).toHaveBeenCalled()
 
     logSpy.mockRestore()
   })

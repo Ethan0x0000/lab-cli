@@ -11,8 +11,7 @@ const {
   mockCheckSlurmAvailable,
   mockCheckSlurmJsonSupport,
   mockGetConfig,
-  mockConnect,
-  mockDisconnect,
+  mockSshManagerGetConnection,
   mockOra,
 } = vi.hoisted(() => ({
   mockCheckGlobalConfig: vi.fn(),
@@ -22,8 +21,7 @@ const {
   mockCheckSlurmAvailable: vi.fn(),
   mockCheckSlurmJsonSupport: vi.fn(),
   mockGetConfig: vi.fn(),
-  mockConnect: vi.fn(),
-  mockDisconnect: vi.fn(),
+  mockSshManagerGetConnection: vi.fn(),
   mockOra: vi.fn((text: string) => ({
     text,
     start: vi.fn().mockReturnThis(),
@@ -46,12 +44,15 @@ vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-      connect: mockConnect,
-      disconnect: mockDisconnect,
-    }
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockSshManagerGetConnection,
+  },
+}))
+
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: vi.fn((error, context) => {
+    throw new Error(`${context}: ${error instanceof Error ? error.message : String(error)}`)
   }),
 }))
 
@@ -109,8 +110,7 @@ describe('doctor 命令', () => {
     mockCheckSlurmAvailable.mockResolvedValue(ok('Slurm 可用'))
     mockCheckSlurmJsonSupport.mockResolvedValue(ok('Slurm JSON 支持可用'))
     mockGetConfig.mockResolvedValue(baseConfig)
-    mockConnect.mockResolvedValue(undefined)
-    mockDisconnect.mockImplementation(() => undefined)
+    mockSshManagerGetConnection.mockResolvedValue({})
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
@@ -128,7 +128,7 @@ describe('doctor 命令', () => {
     expect(mockCheckGlobalConfig).toHaveBeenCalledTimes(1)
     expect(mockCheckProjectConfig).toHaveBeenCalledTimes(1)
     expect(mockCheckRsync).toHaveBeenCalledTimes(1)
-    expect(mockGetConfig).toHaveBeenCalledTimes(1)
+    expect(mockGetConfig).toHaveBeenCalledTimes(2)
     expect(mockCheckSshConnection).toHaveBeenCalledWith({
       host: baseConfig.host,
       port: baseConfig.port,
@@ -138,6 +138,7 @@ describe('doctor 命令', () => {
     })
     expect(mockCheckSlurmAvailable).toHaveBeenCalledTimes(1)
     expect(mockCheckSlurmJsonSupport).toHaveBeenCalledTimes(1)
+    expect(mockSshManagerGetConnection).toHaveBeenCalledTimes(1)
     expect(console.log).toHaveBeenCalledWith('\n诊断完成: 6/6 项通过')
   })
 

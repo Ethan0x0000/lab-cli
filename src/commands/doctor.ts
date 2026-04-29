@@ -2,7 +2,8 @@ import type { Command } from 'commander'
 import chalk from 'chalk'
 import ora from 'ora'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 import type { SSHConnectionOptions } from '../types/index.js'
 import {
   checkGlobalConfig,
@@ -62,7 +63,6 @@ export function registerDoctorCommand(program: Command): void {
     .description('检查运行环境，诊断潜在问题')
     .action(async () => {
       const results: CheckResult[] = []
-      let client: SSHClient | null = null
 
       try {
         const globalConfigResult = await runCheck('检查全局配置...', () => checkGlobalConfig())
@@ -128,22 +128,18 @@ export function registerDoctorCommand(program: Command): void {
           return
         }
 
-        client = new SSHClient()
-        await client.connect(sshOptions)
+        const config = await getConfig()
+        const sshClient = await sshManager.getConnection(config)
 
-        const slurmResult = await runCheck('检查 Slurm 可用性...', () => checkSlurmAvailable(client as SSHClient))
+        const slurmResult = await runCheck('检查 Slurm 可用性...', () => checkSlurmAvailable(sshClient!))
         results.push(slurmResult)
 
-        const slurmJsonResult = await runCheck('检查 Slurm JSON 支持...', () => checkSlurmJsonSupport(client as SSHClient))
+        const slurmJsonResult = await runCheck('检查 Slurm JSON 支持...', () => checkSlurmJsonSupport(sshClient!))
         results.push(slurmJsonResult)
 
         printSummary(results)
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`诊断失败: ${message}`))
-        process.exit(1)
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '诊断失败')
       }
     })
 }

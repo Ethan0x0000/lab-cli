@@ -3,8 +3,8 @@ import chalk from 'chalk'
 import ora from 'ora'
 import inquirer from 'inquirer'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 import { shellQuote } from '../utils/shell.js'
 
 export function registerSetupCommand(program: Command): void {
@@ -13,13 +13,10 @@ export function registerSetupCommand(program: Command): void {
     .description('创建远程训练目录和 conda 环境')
     .option('--skip-conda', '仅创建目录，跳过 conda 环境创建')
     .action(async (options: { skipConda?: boolean }) => {
-      let client: SSHClient | null = null
-
       try {
         const config = await getConfig()
 
-        client = new SSHClient()
-        await client.connect(await buildSSHOptions(config))
+        const client = await sshManager.getConnection(config)
 
         const spinner = ora(`创建远程目录 ${config.remotePath}...`).start()
         const mkdirResult = await client.exec(`mkdir -p ${shellQuote(config.remotePath)}`)
@@ -76,11 +73,7 @@ export function registerSetupCommand(program: Command): void {
 
         console.log(chalk.green('\n✓ 初始化完成'))
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`初始化失败: ${msg}`))
-        process.exitCode = 1
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '初始化失败')
       }
     })
 }

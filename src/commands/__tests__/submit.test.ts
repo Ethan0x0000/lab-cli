@@ -3,25 +3,21 @@ import { Command } from 'commander'
 import type { MergedConfig } from '../../types/index.js'
 
 const mockGetConfig = vi.fn()
-const mockConnect = vi.fn()
 const mockExec = vi.fn()
-const mockDisconnect = vi.fn()
 const mockSyncToRemote = vi.fn()
 const mockBuildSbatchCommand = vi.fn()
 const mockPrompt = vi.fn()
+const mockGetConnection = vi.fn()
+const mockHandleCliError = vi.fn()
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    exec: mockExec,
-    disconnect: mockDisconnect,
-    }
-  }),
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockGetConnection,
+  },
 }))
 
 vi.mock('../../transfer/rsync.js', () => ({
@@ -38,6 +34,10 @@ vi.mock('inquirer', () => ({
   },
 }))
 
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: mockHandleCliError,
+}))
+
 vi.mock('chalk', () => ({
   default: {
     green: (value: string) => value,
@@ -47,12 +47,6 @@ vi.mock('chalk', () => ({
     yellow: (value: string) => value,
   },
 }))
-
-class ExitCalled extends Error {
-  constructor(readonly code: number) {
-    super(`EXIT:${code}`)
-  }
-}
 
 const baseConfig: MergedConfig = {
   host: '10.0.0.1',
@@ -89,13 +83,14 @@ describe('submit 命令', () => {
       duration: 200,
       errors: [],
     })
-    mockConnect.mockResolvedValue(undefined)
+    mockGetConnection.mockResolvedValue({
+      exec: mockExec,
+    })
     mockExec.mockResolvedValue({
       stdout: 'Submitted batch job 12345',
       stderr: '',
       exitCode: 0,
     })
-    mockDisconnect.mockReturnValue(undefined)
   })
 
   afterEach(() => {
@@ -210,22 +205,16 @@ describe('submit 命令', () => {
   })
 
   it('--preset 不存在时输出可用预设并退出', async () => {
-    mockGetConfig.mockRejectedValue(new Error('全局配置不存在。请先运行 labcli init --global 初始化配置'))
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
     const program = await setupCommand()
 
     await program.parseAsync(['node', 'labcli', 'submit', 'train.sh', '--preset', 'nonexistent'])
 
-    expect(errorSpy).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('可用预设: debug, single-gpu, multi-gpu, full-node')
+    expect(mockHandleCliError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('未知预设 nonexistent'),
+      }),
+      '提交失败'
     )
-    expect(errorSpy).toHaveBeenNthCalledWith(2, '提交失败: EXIT:1')
-    expect(exitSpy).toHaveBeenCalledWith(1)
-    expect(process.exitCode).toBe(1)
     expect(mockGetConfig).not.toHaveBeenCalled()
     expect(mockBuildSbatchCommand).not.toHaveBeenCalled()
   })
@@ -246,7 +235,7 @@ describe('submit 命令', () => {
       error: undefined,
     })
     expect(logSpy).toHaveBeenCalledWith('将要执行:', 'sbatch --partition=gpu train.sh')
-    expect(mockConnect).not.toHaveBeenCalled()
+    expect(mockExec).not.toHaveBeenCalled()
   })
 
   it('开启 --sync 时会先同步代码再提交任务', async () => {
@@ -265,7 +254,7 @@ describe('submit 命令', () => {
       privateKeyPath: '~/.ssh/id_rsa',
       port: 22,
     })
-    expect(mockConnect).toHaveBeenCalledTimes(1)
+    expect(mockGetConnection).toHaveBeenCalledTimes(1)
     expect(logSpy).toHaveBeenCalledWith('正在同步代码...')
     expect(logSpy).toHaveBeenCalledWith('✓ 代码同步完成')
 
@@ -278,19 +267,12 @@ describe('submit 命令', () => {
 
     await program.parseAsync(['node', 'labcli', 'submit', 'train.sh'])
 
-    expect(mockConnect).toHaveBeenCalledWith({
-      host: '10.0.0.1',
-      port: 22,
-      username: 'alice',
-      authMethod: 'key',
-      privateKeyPath: '~/.ssh/id_rsa',
-    })
+    expect(mockGetConnection).toHaveBeenCalledWith(baseConfig)
     expect(mockExec).toHaveBeenCalledWith('sbatch --partition=gpu train.sh')
     expect(logSpy).toHaveBeenCalledWith('✓ 任务已提交')
     expect(logSpy).toHaveBeenCalledWith('  JobID: 12345')
     expect(logSpy).toHaveBeenCalledWith('  分区: gpu')
     expect(logSpy).toHaveBeenCalledWith('  GPU: 2')
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
   })
 
   it('sbatch 执行失败时输出错误并退出', async () => {
@@ -299,18 +281,13 @@ describe('submit 命令', () => {
       stderr: 'Invalid partition: gpu',
       exitCode: 1,
     })
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
     const program = await setupCommand()
 
     await program.parseAsync(['node', 'labcli', 'submit', 'train.sh'])
 
-    expect(errorSpy).toHaveBeenNthCalledWith(1, '提交失败: Invalid partition: gpu')
-    expect(errorSpy).toHaveBeenNthCalledWith(2, '提交失败: Invalid partition: gpu')
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
-    expect(process.exitCode).toBe(1)
-    expect(exitSpy).not.toHaveBeenCalled()
+    expect(mockHandleCliError).toHaveBeenCalledWith(
+      expect.any(Error),
+      '提交失败'
+    )
   })
 })

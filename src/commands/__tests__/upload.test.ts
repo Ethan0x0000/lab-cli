@@ -7,9 +7,8 @@ const mockStatSync = vi.fn()
 const mockGetConfig = vi.fn()
 const mockSyncToRemote = vi.fn()
 const mockUploadFile = vi.fn()
-const mockConnect = vi.fn()
 const mockSftp = vi.fn()
-const mockDisconnect = vi.fn()
+const mockSshManagerGetConnection = vi.fn()
 const mockSpinner = {
   start: vi.fn(),
   succeed: vi.fn(),
@@ -35,13 +34,15 @@ vi.mock('../../transfer/sftp.js', () => ({
   uploadFile: mockUploadFile,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    sftp: mockSftp,
-    disconnect: mockDisconnect,
-    }
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockSshManagerGetConnection,
+  },
+}))
+
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: vi.fn((error, context) => {
+    throw new Error(`${context}: ${error instanceof Error ? error.message : String(error)}`)
   }),
 }))
 
@@ -57,12 +58,6 @@ vi.mock('chalk', () => ({
     dim: mockDim,
   },
 }))
-
-class ExitCalled extends Error {
-  constructor(readonly code: number) {
-    super(`EXIT:${code}`)
-  }
-}
 
 const baseConfig: MergedConfig = {
   host: '10.0.0.1',
@@ -92,10 +87,11 @@ describe('upload 命令', () => {
     mockSpinner.fail.mockReturnValue(mockSpinner)
     mockExistsSync.mockReturnValue(true)
     mockGetConfig.mockResolvedValue(baseConfig)
-    mockConnect.mockResolvedValue(undefined)
     mockSftp.mockResolvedValue('mock-sftp')
-    mockDisconnect.mockReturnValue(undefined)
     mockUploadFile.mockResolvedValue(undefined)
+    mockSshManagerGetConnection.mockResolvedValue({
+      sftp: mockSftp,
+    })
     mockSyncToRemote.mockResolvedValue({
       filesTransferred: 1,
       bytesTransferred: 128,
@@ -143,16 +139,9 @@ describe('upload 命令', () => {
     const program = await setupCommand()
     await program.parseAsync(['node', 'labcli', 'upload', 'artifacts/model.bin', '/remote/files'])
 
-    expect(mockConnect).toHaveBeenCalledWith({
-      host: '10.0.0.1',
-      port: 22,
-      username: 'alice',
-      authMethod: 'key',
-      privateKeyPath: '~/.ssh/id_rsa',
-    })
+    expect(mockSshManagerGetConnection).toHaveBeenCalledWith(baseConfig)
     expect(mockSftp).toHaveBeenCalledTimes(1)
     expect(mockUploadFile).toHaveBeenCalledWith('mock-sftp', 'artifacts/model.bin', '/remote/files/model.bin')
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
     expect(mockSyncToRemote).not.toHaveBeenCalled()
   })
 

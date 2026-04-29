@@ -5,16 +5,14 @@ import type { MergedConfig, SSHExecResult } from '../../types/index.js'
 const {
   mockGetConfig,
   mockPrompt,
-  mockConnect,
   mockExec,
-  mockDisconnect,
+  mockSshManagerGetConnection,
   mockOra,
 } = vi.hoisted(() => ({
   mockGetConfig: vi.fn(),
   mockPrompt: vi.fn(),
-  mockConnect: vi.fn(),
   mockExec: vi.fn(),
-  mockDisconnect: vi.fn(),
+  mockSshManagerGetConnection: vi.fn(),
   mockOra: vi.fn((text: string) => ({
     text,
     start: vi.fn().mockReturnThis(),
@@ -27,13 +25,15 @@ vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    exec: mockExec,
-    disconnect: mockDisconnect,
-    }
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockSshManagerGetConnection,
+  },
+}))
+
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: vi.fn((error, context) => {
+    throw new Error(`${context}: ${error instanceof Error ? error.message : String(error)}`)
   }),
 }))
 
@@ -94,8 +94,9 @@ describe('setup 命令', () => {
     vi.clearAllMocks()
     process.exitCode = undefined
     mockGetConfig.mockResolvedValue(baseConfig)
-    mockConnect.mockResolvedValue(undefined)
-    mockDisconnect.mockImplementation(() => undefined)
+    mockSshManagerGetConnection.mockResolvedValue({
+      exec: mockExec,
+    })
     mockPrompt.mockResolvedValue({ rebuild: false })
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -129,19 +130,12 @@ describe('setup 命令', () => {
 
     await runSetup()
 
-    expect(mockConnect).toHaveBeenCalledWith({
-      host: baseConfig.host,
-      port: baseConfig.port,
-      username: baseConfig.username,
-      authMethod: baseConfig.authMethod,
-      privateKeyPath: baseConfig.privateKeyPath,
-    })
+    expect(mockSshManagerGetConnection).toHaveBeenCalledWith(baseConfig)
     expect(mockExec).toHaveBeenNthCalledWith(1, `mkdir -p '${baseConfig.remotePath}'`)
     expect(mockExec).toHaveBeenNthCalledWith(2, `ls -la '${baseConfig.remotePath}'`)
     expect(mockExec).toHaveBeenNthCalledWith(3, `conda env list 2>/dev/null | grep -F '${baseConfig.condaEnvName} '`)
     expect(mockExec).toHaveBeenNthCalledWith(4, `conda create -n '${baseConfig.condaEnvName}' python='${baseConfig.condaPythonVersion}' -y`)
     expect(console.log).toHaveBeenCalledWith('\n✓ 初始化完成')
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
   })
 
   it('传入 --skip-conda 时只创建目录', async () => {
@@ -164,21 +158,17 @@ describe('setup 命令', () => {
 
     await runSetup()
 
-    expect(mockPrompt).toHaveBeenCalledTimes(1)
-    expect(mockExec).toHaveBeenCalledTimes(3)
-    expect(console.log).toHaveBeenCalledWith(`跳过 conda 环境创建（已存在: ${baseConfig.condaEnvName}）`)
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
-  })
+     expect(mockPrompt).toHaveBeenCalledTimes(1)
+     expect(mockExec).toHaveBeenCalledTimes(3)
+     expect(console.log).toHaveBeenCalledWith(`跳过 conda 环境创建（已存在: ${baseConfig.condaEnvName}）`)
+   })
 
-  it('目录创建失败时输出错误并退出', async () => {
-    mockExec.mockResolvedValueOnce(execResult({ exitCode: 1, stderr: 'Permission denied' }))
+   it('目录创建失败时输出错误并退出', async () => {
+     mockExec.mockResolvedValueOnce(execResult({ exitCode: 1, stderr: 'Permission denied' }))
 
-    await runSetup()
+     await expect(runSetup()).rejects.toThrow('初始化失败: Permission denied')
 
-    expect(mockExec).toHaveBeenCalledTimes(1)
-    expect(console.error).toHaveBeenCalledWith('Permission denied')
-    expect(console.error).toHaveBeenCalledWith('初始化失败: Permission denied')
-    expect(process.exitCode).toBe(1)
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
-  })
+     expect(mockExec).toHaveBeenCalledTimes(1)
+     expect(console.error).toHaveBeenCalledWith('Permission denied')
+   })
 })

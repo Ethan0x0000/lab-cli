@@ -2,15 +2,13 @@ import type { Command } from 'commander'
 import inquirer from 'inquirer'
 import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
+import { sshManager } from '../ssh/manager.js'
 
 export function registerConnectCommand(program: Command): void {
   program
     .command('connect')
     .description('建立 SSH 连接到计算节点')
     .action(async () => {
-      let client: SSHClient | null = null
-
       try {
         const config = await getConfig()
 
@@ -27,17 +25,10 @@ export function registerConnectCommand(program: Command): void {
           password = pwd
         }
 
-        client = new SSHClient()
         console.log(chalk.blue(`正在连接 ${config.username}@${config.host}...`))
 
-        await client.connect({
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          authMethod: config.authMethod,
-          privateKeyPath: config.privateKeyPath,
-          password,
-        })
+        const configWithPassword = { ...config, password }
+        const client = await sshManager.getConnection(configWithPassword)
 
         console.log(chalk.green(`✓ 已连接到 ${config.username}@${config.host}`))
 
@@ -49,12 +40,12 @@ export function registerConnectCommand(program: Command): void {
 
         channel.on('close', () => {
           console.log(chalk.yellow('\n连接已断开'))
-          client?.disconnect()
+          client.disconnect()
           process.exit(0)
         })
 
         process.on('SIGINT', () => {
-          client?.disconnect()
+          client.disconnect()
           process.exit(0)
         })
       } catch (error) {
@@ -70,7 +61,6 @@ export function registerConnectCommand(program: Command): void {
           console.error(chalk.red(`连接失败: ${msg}`))
         }
 
-        client?.disconnect()
         process.exitCode = 1
       }
     })

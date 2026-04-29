@@ -3,30 +3,30 @@ import { Command } from 'commander'
 import type { MergedConfig, SlurmJobInfo } from '../../types/index.js'
 
 const mockGetConfig = vi.fn()
-const mockConnect = vi.fn()
 const mockExec = vi.fn()
-const mockDisconnect = vi.fn()
 const mockParseSqueueJson = vi.fn()
 const mockParseSqueueFormat = vi.fn()
 const mockDim = vi.fn((value: string) => value)
+const mockGetConnection = vi.fn()
+const mockHandleCliError = vi.fn()
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    exec: mockExec,
-    disconnect: mockDisconnect,
-    }
-  }),
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockGetConnection,
+  },
 }))
 
 vi.mock('../../slurm/parser.js', () => ({
   parseSqueueJson: mockParseSqueueJson,
   parseSqueueFormat: mockParseSqueueFormat,
+}))
+
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: mockHandleCliError,
 }))
 
 vi.mock('chalk', () => ({
@@ -88,13 +88,14 @@ describe('status 命令', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetConfig.mockResolvedValue(baseConfig)
-    mockConnect.mockResolvedValue(undefined)
+    mockGetConnection.mockResolvedValue({
+      exec: mockExec,
+    })
     mockExec.mockResolvedValue({
       stdout: '{"jobs":[]}',
       stderr: '',
       exitCode: 0,
     })
-    mockDisconnect.mockReturnValue(undefined)
     mockParseSqueueJson.mockReturnValue(sampleJobs)
     mockParseSqueueFormat.mockReturnValue(sampleJobs)
   })
@@ -119,7 +120,6 @@ describe('status 命令', () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('JobID'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('12345'))
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('RUNNING'))
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
   })
 
   it('JSON 解析失败时回退到格式化解析', async () => {

@@ -3,6 +3,7 @@ import chokidar from 'chokidar'
 import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
 import { syncToRemote } from '../transfer/rsync.js'
+import { handleCliError } from '../utils/errors.js'
 
 function debounce<T extends unknown[]>(fn: (...args: T) => void, delay: number): (...args: T) => void {
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -112,9 +113,7 @@ export function registerWatchCommand(program: Command): void {
         process.on('SIGINT', cleanup)
         process.on('SIGTERM', cleanup)
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`watch 失败: ${msg}`))
-        process.exitCode = 1
+        handleCliError(error, 'watch 失败')
       }
     })
 }

@@ -20,7 +20,7 @@ export interface SyncResult {
 }
 
 export function buildRsyncArgs(options: SyncOptions): string[] {
-  const args: string[] = ['-avz', '--delete', '--stats']
+  const args: string[] = ['-avz', '--delete', '--out-format=%n']
 
   for (const pattern of options.excludePatterns) {
     args.push(`--exclude=${pattern}`)
@@ -69,12 +69,11 @@ export async function syncToRemote(options: SyncOptions): Promise<SyncResult> {
         return
       }
 
-      const filesMatch = stdout.match(/Number of regular files transferred: (\d+)/)
-      const bytesMatch = stdout.match(/Total transferred file size: ([\d,]+)/)
+      const filesTransferred = stdout.trim().split('\n').filter(line => line.trim()).length
 
       resolve({
-        filesTransferred: filesMatch ? parseInt(filesMatch[1], 10) : 0,
-        bytesTransferred: bytesMatch ? parseInt(bytesMatch[1].replace(/,/g, ''), 10) : 0,
+        filesTransferred,
+        bytesTransferred: 0,
         duration,
         errors: stderr ? [stderr] : [],
       })

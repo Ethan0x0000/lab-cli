@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetConfig = vi.fn()
-const mockConnect = vi.fn()
 const mockExec = vi.fn()
 const mockDisconnect = vi.fn()
+const mockGetConnection = vi.fn()
 const mockBuildScancelCommand = vi.fn((jobId: string) => `scancel ${jobId}`)
 const mockParseSqueueJson = vi.fn()
 const mockPrompt = vi.fn()
@@ -12,14 +12,10 @@ vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    exec: mockExec,
-    disconnect: mockDisconnect,
-    }
-  }),
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockGetConnection,
+  },
 }))
 
 vi.mock('../../slurm/commands.js', () => ({
@@ -62,10 +58,13 @@ describe('cancel 命令', () => {
     vi.clearAllMocks()
     process.exitCode = undefined
     mockGetConfig.mockResolvedValue(createMockConfig())
-    mockConnect.mockResolvedValue(undefined)
     mockExec.mockResolvedValue({ stdout: '', stderr: '', exitCode: 0 })
     mockParseSqueueJson.mockReturnValue([])
     mockPrompt.mockResolvedValue({ confirm: true })
+    mockGetConnection.mockResolvedValue({
+      exec: mockExec,
+      disconnect: mockDisconnect,
+    })
   })
 
   afterEach(() => {
@@ -96,17 +95,10 @@ describe('cancel 命令', () => {
 
     await program.parseAsync(['node', 'test', 'cancel', '12345'])
 
-    expect(mockConnect).toHaveBeenCalledWith({
-      host: '10.0.0.1',
-      port: 22,
-      username: 'alice',
-      authMethod: 'key',
-      privateKeyPath: '~/.ssh/id_rsa',
-    })
+    expect(mockGetConnection).toHaveBeenCalledWith(createMockConfig())
     expect(mockBuildScancelCommand).toHaveBeenCalledWith('12345')
     expect(mockExec).toHaveBeenCalledWith('scancel 12345')
     expect(logSpy).toHaveBeenCalledWith('✓ 任务 12345 已取消')
-    expect(mockDisconnect).toHaveBeenCalled()
 
     logSpy.mockRestore()
   })
@@ -127,7 +119,7 @@ describe('cancel 命令', () => {
     expect(mockExec).toHaveBeenCalledWith("squeue --json --user='alice'")
     expect(mockPrompt).not.toHaveBeenCalled()
     expect(logSpy).toHaveBeenCalledWith('没有运行中的任务')
-    expect(mockDisconnect).toHaveBeenCalled()
+    expect(mockDisconnect).not.toHaveBeenCalled()
 
     logSpy.mockRestore()
   })
@@ -144,6 +136,5 @@ describe('cancel 命令', () => {
 
     expect(errorSpy).toHaveBeenCalledWith('取消失败: 请提供 jobId 或使用 --all 取消所有任务')
     expect(process.exitCode).toBe(1)
-    expect(mockDisconnect).toHaveBeenCalled()
   })
 })

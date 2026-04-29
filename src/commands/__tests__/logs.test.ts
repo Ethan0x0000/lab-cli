@@ -4,24 +4,19 @@ import { Command } from 'commander'
 import type { MergedConfig } from '../../types/index.js'
 
 const mockGetConfig = vi.fn()
-const mockConnect = vi.fn()
 const mockExec = vi.fn()
 const mockExecStream = vi.fn()
 const mockDisconnect = vi.fn()
+const mockGetConnection = vi.fn()
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    exec: mockExec,
-    execStream: mockExecStream,
-    disconnect: mockDisconnect,
-    }
-  }),
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockGetConnection,
+  },
 }))
 
 vi.mock('chalk', () => ({
@@ -62,7 +57,6 @@ describe('logs 命令', () => {
     vi.clearAllMocks()
     process.exitCode = undefined
     mockGetConfig.mockResolvedValue(baseConfig)
-    mockConnect.mockResolvedValue(undefined)
     mockExec.mockResolvedValueOnce({
       stdout: 'JobId=12345 Name=train StdOut=/tmp/slurm/12345.out StdErr=/tmp/slurm/12345.err',
       stderr: '',
@@ -74,6 +68,11 @@ describe('logs 命令', () => {
     })
     mockExecStream.mockResolvedValue(new MockChannel())
     mockDisconnect.mockReturnValue(undefined)
+    mockGetConnection.mockResolvedValue({
+      exec: mockExec,
+      execStream: mockExecStream,
+      disconnect: mockDisconnect,
+    })
   })
 
   afterEach(() => {
