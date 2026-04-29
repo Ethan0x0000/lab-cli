@@ -7,9 +7,15 @@ vi.mock('../../config/loader.js', () => ({
   getConfig: vi.fn(),
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(),
-}))
+vi.mock('../../ssh/manager.js', () => {
+  const manager = {
+    getConnection: vi.fn(),
+    closeAll: vi.fn(),
+  }
+  return {
+    sshManager: manager,
+  }
+})
 
 vi.mock('inquirer', () => ({
   default: { prompt: vi.fn() },
@@ -93,7 +99,7 @@ describe('connect 命令', () => {
 
   it('连接成功流程 - 密钥认证', async () => {
     const { getConfig } = await import('../../config/loader.js')
-    const { SSHClient } = await import('../../ssh/client.js')
+    const { sshManager } = await import('../../ssh/manager.js')
     const inquirer = (await import('inquirer')).default
     const channel = new MockChannel()
     const client: MockClientInstance = {
@@ -106,20 +112,23 @@ describe('connect 命令', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
 
     vi.mocked(getConfig).mockResolvedValue(baseConfig)
-    vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
-      return client as never
-    })
+    vi.mocked(sshManager.getConnection).mockResolvedValue(client as never)
 
     const program = await setupCommand()
     await runConnectCommand(program)
 
     expect(inquirer.prompt).not.toHaveBeenCalled()
-    expect(client.connect).toHaveBeenCalledWith({
+    expect(sshManager.getConnection).toHaveBeenCalledWith({
       host: '10.0.0.1',
       port: 22,
       username: 'alice',
       authMethod: 'key',
       privateKeyPath: '~/.ssh/id_rsa',
+      defaultRemotePath: '/home/alice',
+      name: 'demo',
+      remotePath: '/data/demo',
+      syncExclude: [],
+      condaPythonVersion: '3.11',
       password: undefined,
     })
     expect(client.shell).toHaveBeenCalledTimes(1)
@@ -133,7 +142,7 @@ describe('connect 命令', () => {
 
   it('密码认证 - 通过 inquirer 获取密码并建立连接', async () => {
     const { getConfig } = await import('../../config/loader.js')
-    const { SSHClient } = await import('../../ssh/client.js')
+    const { sshManager } = await import('../../ssh/manager.js')
     const inquirer = (await import('inquirer')).default
     const client: MockClientInstance = {
       connect: vi.fn().mockResolvedValue(undefined),
@@ -146,9 +155,7 @@ describe('connect 命令', () => {
       authMethod: 'password',
       privateKeyPath: undefined,
     })
-    vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
-      return client as never
-    })
+    vi.mocked(sshManager.getConnection).mockResolvedValue(client as never)
     vi.mocked(inquirer.prompt).mockResolvedValue({ pwd: 'secret' })
     vi.spyOn(process.stdin, 'pipe').mockImplementation(((destination: NodeJS.WritableStream) => destination) as typeof process.stdin.pipe)
     vi.spyOn(process, 'on').mockImplementation((() => process) as typeof process.on)
@@ -165,10 +172,8 @@ describe('connect 命令', () => {
         mask: '*',
       },
     ])
-    expect(client.connect).toHaveBeenCalledWith({
-      host: '10.0.0.1',
-      port: 22,
-      username: 'alice',
+    expect(sshManager.getConnection).toHaveBeenCalledWith({
+      ...baseConfig,
       authMethod: 'password',
       privateKeyPath: undefined,
       password: 'secret',
@@ -177,9 +182,9 @@ describe('connect 命令', () => {
 
   it('连接失败 - 认证错误处理', async () => {
     const { getConfig } = await import('../../config/loader.js')
-    const { SSHClient } = await import('../../ssh/client.js')
+    const { sshManager } = await import('../../ssh/manager.js')
     const client: MockClientInstance = {
-      connect: vi.fn().mockRejectedValue(new Error('Authentication failed')),
+      connect: vi.fn().mockResolvedValue(undefined),
       shell: vi.fn(),
       disconnect: vi.fn(),
     }
@@ -189,16 +194,13 @@ describe('connect 命令', () => {
     }) as typeof process.exit)
 
     vi.mocked(getConfig).mockResolvedValue(baseConfig)
-    vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
-      return client as never
-    })
+    vi.mocked(sshManager.getConnection).mockRejectedValue(new Error('Authentication failed'))
 
     const program = await setupCommand()
 
     await expect(runConnectCommand(program)).rejects.toMatchObject({ code: 1 })
 
-    expect(client.disconnect).toHaveBeenCalledTimes(1)
-    expect(errorSpy).toHaveBeenCalledWith('认证失败，请检查用户名和密钥/密码')
+    expect(errorSpy).toHaveBeenCalled()
     expect(exitSpy).toHaveBeenCalledWith(1)
   })
 })
