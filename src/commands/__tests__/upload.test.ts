@@ -59,12 +59,6 @@ vi.mock('chalk', () => ({
   },
 }))
 
-class ExitCalled extends Error {
-  constructor(readonly code: number) {
-    super(`EXIT:${code}`)
-  }
-}
-
 const baseConfig: MergedConfig = {
   host: '10.0.0.1',
   port: 22,

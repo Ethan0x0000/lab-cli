@@ -47,7 +47,8 @@ export class SSHExecution implements RemoteExecution {
     })
   }
 
-  async downloadFolder(_remotePath: string, _localPath: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async downloadFolder(remotePath: string, localPath: string): Promise<void> {
     throw new Error('下载文件夹功能尚未实现')
   }
 

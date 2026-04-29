@@ -23,7 +23,11 @@ export class MockExecution implements RemoteExecution {
   }
 
   getCommandLog(): string[] { return [...this.commandLog] }
-  async uploadFolder(): Promise<void> {}
-  async downloadFolder(): Promise<void> {}
+  async uploadFolder(): Promise<void> {
+    // do nothing
+  }
+  async downloadFolder(): Promise<void> {
+    // do nothing
+  }
   disconnect(): void {}
 }

@@ -47,14 +47,18 @@ export function listMetadatas(jobsRoot: string): JobMetadata[] {
   while (stack.length > 0) {
     const cur = stack.pop()!
     const candidate = join(cur, 'metadata.json')
-    if (existsSync(candidate)) {
-      try { metadatas.push(JobMetadata.fromJson(readFileSync(candidate, 'utf-8'))) } catch {}
-    } else {
-      try {
-        for (const child of readdirSync(cur, { withFileTypes: true })) {
-          if (child.isDirectory()) stack.push(join(cur, child.name))
-        }
-      } catch {}
+     if (existsSync(candidate)) {
+       try { metadatas.push(JobMetadata.fromJson(readFileSync(candidate, 'utf-8'))) } catch {
+         // ignore parse errors
+       }
+     } else {
+       try {
+         for (const child of readdirSync(cur, { withFileTypes: true })) {
+           if (child.isDirectory()) stack.push(join(cur, child.name))
+         }
+       } catch {
+         // ignore read errors
+       }
     }
   }
   return metadatas.sort((a, b) => b.date.localeCompare(a.date))

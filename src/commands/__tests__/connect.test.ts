@@ -30,12 +30,6 @@ vi.mock('chalk', () => ({
   },
 }))
 
-class ExitCalled extends Error {
-  constructor(readonly code: number) {
-    super(`EXIT:${code}`)
-  }
-}
-
 class MockChannel extends EventEmitter {
   pipe = vi.fn().mockReturnThis()
 }
@@ -183,22 +177,17 @@ describe('connect 命令', () => {
   it('连接失败 - 认证错误处理', async () => {
     const { getConfig } = await import('../../config/loader.js')
     const { sshManager } = await import('../../ssh/manager.js')
-    const client: MockClientInstance = {
-      connect: vi.fn().mockResolvedValue(undefined),
-      shell: vi.fn(),
-      disconnect: vi.fn(),
-    }
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
+     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
+       throw new Error(`EXIT:${typeof code === 'number' ? code : 0}`)
+     }) as typeof process.exit)
 
     vi.mocked(getConfig).mockResolvedValue(baseConfig)
     vi.mocked(sshManager.getConnection).mockRejectedValue(new Error('Authentication failed'))
 
-    const program = await setupCommand()
+     const program = await setupCommand()
 
-    await expect(runConnectCommand(program)).rejects.toMatchObject({ code: 1 })
+     await expect(runConnectCommand(program)).rejects.toThrow('EXIT:1')
 
     expect(errorSpy).toHaveBeenCalled()
     expect(exitSpy).toHaveBeenCalledWith(1)
