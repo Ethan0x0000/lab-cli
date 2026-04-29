@@ -36,9 +36,9 @@ export class MockSlurm {
       else if (code === 0) job.state = 'COMPLETED'
       else job.state = 'FAILED'
      job.process = null
-       try { unlinkSync(scriptPath) } catch {
-         // ignore cleanup errors
-       }
+        try { unlinkSync(scriptPath) } catch {
+          // ignore cleanup errors
+        }
     })
     this.jobs.set(String(id), job)
     return id

@@ -5,10 +5,11 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     passWithNoTests: true,
+    exclude: ['node_modules', 'dist', 'coverage', '.worktrees'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      exclude: ['node_modules', 'dist', 'coverage', '**/__tests__/**'],
+      exclude: ['node_modules', 'dist', 'coverage', '**/__tests__/**', '.worktrees'],
     },
   },
 })
