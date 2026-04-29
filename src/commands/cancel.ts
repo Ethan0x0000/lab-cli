@@ -2,10 +2,10 @@ import type { Command } from 'commander'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
+import { sshManager } from '../ssh/manager.js'
 import { buildScancelCommand } from '../slurm/commands.js'
 import { parseSqueueJson } from '../slurm/parser.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { handleCliError } from '../utils/errors.js'
 import { shellQuote } from '../utils/shell.js'
 
 export function registerCancelCommand(program: Command): void {
@@ -14,13 +14,10 @@ export function registerCancelCommand(program: Command): void {
     .description('取消 Slurm 任务')
     .option('--all', '取消当前用户的所有任务')
     .action(async (jobId: string | undefined, options) => {
-      let client: SSHClient | null = null
-
       try {
         const config = await getConfig()
 
-        client = new SSHClient()
-        await client.connect(await buildSSHOptions(config))
+        const client = await sshManager.getConnection(config)
 
         if (options.all) {
           const squeueResult = await client.exec(`squeue --json --user=${shellQuote(config.username)}`)
@@ -85,11 +82,7 @@ export function registerCancelCommand(program: Command): void {
 
         throw new Error('请提供 jobId 或使用 --all 取消所有任务')
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`取消失败: ${msg}`))
-        process.exitCode = 1
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '取消失败')
       }
     })
 }
