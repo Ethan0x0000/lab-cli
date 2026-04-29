@@ -2,11 +2,11 @@ import type { Command } from 'commander'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
 import { buildSbatchCommand, type SbatchOptions } from '../slurm/commands.js'
 import { getPreset, getPresetOptions, listPresets } from '../slurm/presets.js'
 import { syncToRemote } from '../transfer/rsync.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 
 export function registerSubmitCommand(program: Command): void {
   program
@@ -24,8 +24,6 @@ export function registerSubmitCommand(program: Command): void {
     .option('--sync', '提交前先同步代码')
     .option('--dry-run', '仅显示将要执行的命令')
     .action(async (script: string, options) => {
-      let client: SSHClient | null = null
-
       try {
         let selectedPreset = options.preset as string | undefined
 
@@ -52,8 +50,8 @@ export function registerSubmitCommand(program: Command): void {
 
           if (!preset) {
             const availablePresets = listPresets().map((item) => item.name).join(', ')
-            console.error(chalk.red(`提交失败: 未知预设 ${selectedPreset}。可用预设: ${availablePresets}`))
-            process.exit(1)
+            handleCliError(new Error(`未知预设 ${selectedPreset}。可用预设: ${availablePresets}`), '提交失败')
+            return
           }
 
           presetOptions = getPresetOptions(selectedPreset)
@@ -61,6 +59,7 @@ export function registerSubmitCommand(program: Command): void {
         }
 
         const config = await getConfig()
+        const client = await sshManager.getConnection(config)
 
         if (options.sync) {
           console.log(chalk.blue('正在同步代码...'))
@@ -91,9 +90,6 @@ export function registerSubmitCommand(program: Command): void {
           return
         }
 
-        client = new SSHClient()
-        await client.connect(await buildSSHOptions(config))
-
         const result = await client.exec(sbatchCmd)
 
         if (result.exitCode !== 0) {
@@ -118,11 +114,7 @@ export function registerSubmitCommand(program: Command): void {
           console.log(`  GPU: ${resolvedGpus}`)
         }
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`提交失败: ${msg}`))
-        process.exitCode = 1
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '提交失败')
       }
     })
 }
