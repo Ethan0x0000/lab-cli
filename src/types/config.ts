@@ -3,6 +3,7 @@ export interface GlobalConfig {
   port: number
   username: string
   authMethod: 'key' | 'password'
+  password?: string
   privateKeyPath?: string
   defaultPartition?: string
   defaultRemotePath: string
@@ -24,6 +25,7 @@ export interface MergedConfig {
   port: number
   username: string
   authMethod: 'key' | 'password'
+  password?: string
   privateKeyPath?: string
   defaultPartition?: string
   defaultRemotePath: string
