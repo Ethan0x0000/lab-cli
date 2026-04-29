@@ -73,7 +73,9 @@ Do not use it for unrelated Slurm tools or generic SSH troubleshooting outside L
 | SSH | `src/ssh/client.ts`, `manager.ts` | Uses `ssh2`, not `node-ssh`; manager caches connections and cleans up on exit/SIGINT |
 | Slurm | `src/slurm/commands.ts`, `parser.ts`, `detector.ts`, `presets.ts` | JSON support detection is cached; parsers fall back to text |
 | Transfer | `src/transfer/rsync.ts`, `sftp.ts` | `sync` requires local rsync; upload has SFTP path only for small files |
-| Utils | `src/utils/checks.ts`, `ssh-helpers.ts`, `shell.ts` | Doctor checks, SSH option construction, tilde expansion/shell quoting |
+| Remote | `src/remote/types.ts`, `ssh-execution.ts`, `local-execution.ts`, `mock-execution.ts` | `RemoteExecution` interface with SSH, local, and mock implementations |
+| Job | `src/job/metadata.ts`, `path.ts` | `JobMetadata` and `JobPath` for job directory structure and metadata management |
+| Utils | `src/utils/checks.ts`, `ssh-helpers.ts`, `shell.ts`, `errors.ts` | Doctor checks, SSH option construction, tilde expansion/shell quoting, CLI error handling |
 | Tests | `src/**/__tests__/*.test.ts`, `src/cli.test.ts`, `src/package.test.ts` | Commands use Vitest mocks for `ora`, `chalk`, SSH, config, transfer |
 
 ## Gotchas
@@ -81,7 +83,7 @@ Do not use it for unrelated Slurm tools or generic SSH troubleshooting outside L
 - Error messages and CLI UI strings are Chinese by convention.
 - `sync` is rsync-backed and prints a local-rsync-install hint on failure; do not promise SFTP fallback for `sync`.
 - `README.md` says `quickstart` completes initialization and first sync, but code still tells users to run `labcli setup` afterward for conda environment setup.
-- `src/cli.test.ts` may lag command registration: `src/cli.ts` registers 13 commands.
+- `src/cli.test.ts` spawns the CLI via `execSync` for integration-level verification.
 - Config is merged from global and project sources; most commands call `getConfig()` before action.
 - Never add `as any`, `@ts-ignore`, or `@ts-expect-error` when modifying TypeScript here.
 

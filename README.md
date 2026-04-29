@@ -116,7 +116,7 @@ labcli submit train.sh --guide              # 交互式选择预设
 | `labcli watch` | 监听并自动同步 | `--no-initial-sync` |
 | `labcli setup` | 创建远程环境 | `--skip-conda` |
 | `labcli upload` | 上传文件或目录 | `<localPath> [remotePath]` |
-| `labcli submit` | 提交训练任务 | `--preset`，`--guide`，`--sync`，`--dry-run` |
+| `labcli submit` | 提交训练任务 | `--preset`，`--guide`，`--sync`，`--dry-run`，`--output`，`--error` |
 | `labcli status` | 查看任务状态 | `--job-id`，`--all` |
 | `labcli logs` | 查看训练日志 | `-f`，`--tail`，`--error` |
 | `labcli cancel` | 取消任务 | `--all` |
@@ -234,6 +234,8 @@ labcli upload ./data /home/user/training/data
 - `--nodes <n>`，节点数量
 - `--time <HH:MM:SS>`，时间限制
 - `--name <jobName>`，作业名称
+- `--output <path>`，stdout 日志路径
+- `--error <path>`，stderr 日志路径
 - `--sync`，提交前先同步代码
 - `--dry-run`，只预览命令
 - `--preset <name>`，使用预设资源配置
@@ -373,7 +375,7 @@ A: 检查 `~/.lab-cli/config.yaml` 里的认证方式和私钥路径，确认服
 
 **Q: rsync 不可用怎么办？**
 
-A: `sync` 和 `upload` 会自动降级到 SFTP 传输。
+A: `upload` 会自动降级到 SFTP 传输；`sync` 需要本地安装 rsync。
 
 **Q: Slurm 的 `--json` 不可用怎么办？**
 

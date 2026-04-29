@@ -22,7 +22,7 @@ npx vitest run -t "mergeConfig"
 
 ## Architecture
 
-- **Entry point**: `src/cli.ts` — creates Commander program, registers 11 commands, calls `parseAsync`. `src/index.ts` is empty — not the entry.
+- **Entry point**: `src/cli.ts` — creates Commander program, registers 13 commands, calls `parseAsync`. `src/index.ts` is empty — not the entry.
 - **Build output**: `dist/cli.js` — single ESM bundle with shebang (tsup config in `tsup.config.ts`)
 - **Commands**: `src/commands/*.ts` — each exports `registerXxxCommand(program: Command)`. Flat hierarchy, no subcommands.
 - **Config**: `src/config/` — Zod schemas (`schema.ts`), cosmiconfig loader (`loader.ts`), YAML writer (`writer.ts`)
@@ -32,6 +32,8 @@ npx vitest run -t "mergeConfig"
 - **SSH**: `src/ssh/` — `SSHClient` wraps ssh2, `SSHManager` pools connections. Singleton `sshManager` with process exit/SIGINT cleanup.
 - **Slurm**: `src/slurm/` — shell command builders, JSON + text fallback parsers, JSON support detector with caching
 - **Transfer**: `src/transfer/` — rsync spawn wrapper, SFTP fallback for upload
+- **Remote**: `src/remote/` — `RemoteExecution` interface with `SSHExecution`, `LocalExecution`, `MockExecution` implementations for abstracting remote command execution
+- **Job**: `src/job/` — `JobMetadata` and `JobPath` for job directory structure and metadata management
 - **Types**: `src/types/` — interfaces for config, SSH, Slurm. Re-exported from `types/index.ts`.
 
 ## Conventions
@@ -39,6 +41,7 @@ npx vitest run -t "mergeConfig"
 - **ESM only** (`"type": "module"`). All imports **must** use `.js` extension: `import { foo } from './bar.js'`
 - **Strict TypeScript**: ES2022 target, NodeNext module resolution
 - **Adding a command**: create `src/commands/foo.ts` exporting `registerFooCommand(program: Command)`, then register it in `src/cli.ts`
+- **Barrel exports**: Each domain module (`config`, `ssh`, `slurm`, `transfer`, `remote`) has an `index.ts` that re-exports public APIs
 - **Error messages and UI strings are in Chinese**
 - Async command actions use `ora` spinners and `chalk` coloring
 - Errors caught in command actions → `console.error` + `process.exit(1)`
@@ -62,7 +65,7 @@ npx vitest run -t "mergeConfig"
 
 ## Gotchas
 
-- `rsync` must be installed on the host for sync/upload commands; SFTP is the fallback for upload only
+- `rsync` must be installed on the host for `sync` command; `upload` falls back to SFTP when rsync is unavailable
 - ssh2 library — not node-ssh. Connection config reads private key files directly.
 - Slurm integration auto-detects `--json` flag support and falls back to text format parsing. The detection result is cached in-memory (`detector.ts`).
 - `npm run build` must succeed before `npm link` or `npm pack` — the bin target is `dist/cli.js`
