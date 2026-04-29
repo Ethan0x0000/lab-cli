@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { isWindows, isRsyncAvailable, expandTilde, shellQuote } from '../shell.js'
 
 describe('shell utilities', () => {
