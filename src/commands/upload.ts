@@ -19,7 +19,8 @@ export function registerUploadCommand(program: Command): void {
       try {
         if (!existsSync(localPath)) {
           console.error(chalk.red(`路径不存在: ${localPath}`))
-          process.exit(1)
+          process.exitCode = 1
+          return
         }
 
         const config = await getConfig()
@@ -68,7 +69,7 @@ export function registerUploadCommand(program: Command): void {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`上传失败: ${msg}`))
-        process.exit(1)
+        process.exitCode = 1
       }
     })
 }

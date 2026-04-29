@@ -42,11 +42,11 @@ export function registerInitCommand(program: Command): void {
         } else {
           await initProject()
         }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`初始化失败: ${msg}`))
-        process.exit(1)
-      }
+       } catch (error) {
+         const msg = error instanceof Error ? error.message : String(error)
+         console.error(chalk.red(`初始化失败: ${msg}`))
+         process.exitCode = 1
+       }
     })
 }
 

@@ -114,7 +114,7 @@ export function registerWatchCommand(program: Command): void {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         console.error(chalk.red(`watch 失败: ${msg}`))
-        process.exit(1)
+        process.exitCode = 1
       }
     })
 }

@@ -163,11 +163,11 @@ export function registerQuickstartCommand(program: Command): void {
       console.log('• labcli sync     同步代码')
       console.log('• labcli submit <script>  提交训练任务')
       console.log('• labcli status   查看任务状态')
-      console.log('• labcli doctor   检查环境')
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`快速上手失败: ${msg}`))
-        process.exit(1)
-      }
+       console.log('• labcli doctor   检查环境')
+       } catch (error) {
+         const msg = error instanceof Error ? error.message : String(error)
+         console.error(chalk.red(`快速上手失败: ${msg}`))
+         process.exitCode = 1
+       }
     })
 }

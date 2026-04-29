@@ -192,15 +192,15 @@ describe('upload 命令', () => {
   it('本地路径不存在时输出友好错误并退出', async () => {
     mockExistsSync.mockReturnValue(false)
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
     const program = await setupCommand()
 
-    await expect(program.parseAsync(['node', 'labcli', 'upload', 'missing-path'])).rejects.toMatchObject({ code: 1 })
+    process.exitCode = undefined
+    await program.parseAsync(['node', 'labcli', 'upload', 'missing-path'])
 
     expect(errorSpy).toHaveBeenNthCalledWith(1, '路径不存在: missing-path')
-    expect(errorSpy).toHaveBeenNthCalledWith(2, '上传失败: EXIT:1')
-    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(process.exitCode).toBe(1)
+
+    process.exitCode = undefined
+    errorSpy.mockRestore()
   })
 })

@@ -137,11 +137,7 @@ describe('sync 命令', () => {
   })
 
   it('同步失败时输出错误并退出', async () => {
-    const exitError = new Error('process.exit')
     const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('E:/repo')
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw Object.assign(exitError, { code })
-    }) as never)
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const { Command } = await import('commander')
@@ -150,21 +146,20 @@ describe('sync 命令', () => {
     mockGetConfig.mockResolvedValue(createMockConfig())
     mockSyncToRemote.mockRejectedValue(new Error('rsync exploded'))
 
+    process.exitCode = undefined
     const program = new Command()
     registerSyncCommand(program)
 
-    await expect(program.parseAsync(['node', 'test', 'sync'])).rejects.toMatchObject({
-      message: 'process.exit',
-      code: 1,
-    })
+    await program.parseAsync(['node', 'test', 'sync'])
 
     expect(mockSpinner.fail).toHaveBeenCalledWith('同步失败')
     expect(errorSpy).toHaveBeenCalledWith('同步失败: rsync exploded')
     expect(mockDim).toHaveBeenCalledWith('提示: 确认本机已安装 rsync')
     expect(logSpy).toHaveBeenCalledWith('提示: 确认本机已安装 rsync')
+    expect(process.exitCode).toBe(1)
 
+    process.exitCode = undefined
     cwdSpy.mockRestore()
-    exitSpy.mockRestore()
     errorSpy.mockRestore()
     logSpy.mockRestore()
   })

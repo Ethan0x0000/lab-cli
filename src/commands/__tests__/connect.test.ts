@@ -184,9 +184,6 @@ describe('connect 命令', () => {
       disconnect: vi.fn(),
     }
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
 
     vi.mocked(getConfig).mockResolvedValue(baseConfig)
     vi.mocked(SSHClient).mockImplementation(function MockSSHClient() {
@@ -195,10 +192,14 @@ describe('connect 命令', () => {
 
     const program = await setupCommand()
 
-    await expect(runConnectCommand(program)).rejects.toMatchObject({ code: 1 })
+    process.exitCode = undefined
+    await runConnectCommand(program)
 
     expect(client.disconnect).toHaveBeenCalledTimes(1)
     expect(errorSpy).toHaveBeenCalledWith('认证失败，请检查用户名和密钥/密码')
-    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(process.exitCode).toBe(1)
+
+    process.exitCode = undefined
+    errorSpy.mockRestore()
   })
 })

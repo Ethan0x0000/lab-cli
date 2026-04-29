@@ -71,7 +71,7 @@ export function registerConnectCommand(program: Command): void {
         }
 
         client?.disconnect()
-        process.exit(1)
+        process.exitCode = 1
       }
     })
 }
