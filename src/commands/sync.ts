@@ -3,7 +3,10 @@ import chalk from 'chalk'
 import ora from 'ora'
 import { getConfig } from '../config/loader.js'
 import { syncToRemote } from '../transfer/rsync.js'
+import { uploadDirectory, ensureRemoteDirectory } from '../transfer/sftp.js'
+import { sshManager } from '../ssh/manager.js'
 import { handleCliError } from '../utils/errors.js'
+import { isRsyncAvailable } from '../utils/shell.js'
 
 export function registerSyncCommand(program: Command): void {
   program
@@ -27,16 +30,26 @@ export function registerSyncCommand(program: Command): void {
         }
 
         try {
-          const result = await syncToRemote({
-            localPath: process.cwd(),
-            remotePath: config.remotePath,
-            host: config.host,
-            username: config.username,
-            excludePatterns,
-            dryRun: options.dryRun ?? false,
-            privateKeyPath: config.privateKeyPath,
-            port: config.port,
-          })
+          let result
+          if (isRsyncAvailable()) {
+            result = await syncToRemote({
+              localPath: process.cwd(),
+              remotePath: config.remotePath,
+              host: config.host,
+              username: config.username,
+              excludePatterns,
+              dryRun: options.dryRun ?? false,
+              privateKeyPath: config.privateKeyPath,
+              port: config.port,
+            })
+          } else {
+            spinner.text = 'rsync 不可用，正在使用 SFTP 同步...'
+            const client = await sshManager.getConnection(config)
+            const sftp = await client.sftp()
+            await ensureRemoteDirectory(sftp, config.remotePath)
+            await uploadDirectory(sftp, process.cwd(), config.remotePath, excludePatterns)
+            result = { filesTransferred: 0, bytesTransferred: 0, duration: 0, errors: [] }
+          }
 
           if (options.dryRun) {
             spinner.succeed(chalk.blue('dry-run 完成'))

@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'child_process'
 import { writeFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
+import { isWindows } from '../utils/shell.js'
 
 interface MockJob {
   id: string
@@ -8,6 +9,14 @@ interface MockJob {
   startTime: Date
   state: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
   exitCode: number | null
+}
+
+function resolveMockShell(): { command: string; args: string[] } {
+  if (!isWindows()) {
+    return { command: 'bash', args: [] }
+  }
+
+  return { command: 'bash', args: [] }
 }
 
 export class MockSlurm {
@@ -26,19 +35,28 @@ export class MockSlurm {
       state: 'RUNNING', exitCode: null,
     }
     const workDir = cwd ?? process.cwd()
-    const scriptPath = join(workDir, `.mock-slurm-${id}.sh`)
-    writeFileSync(scriptPath, scriptContent, { mode: 0o755 })
-    const proc = spawn('bash', [scriptPath], { cwd: workDir, stdio: 'ignore' })
+    const isWin = isWindows()
+    const ext = isWin ? '.cmd' : '.sh'
+    const scriptPath = join(workDir, `.mock-slurm-${id}${ext}`)
+
+    if (isWin) {
+      writeFileSync(scriptPath, `@echo off\n${scriptContent}\n`, { mode: 0o755 })
+    } else {
+      writeFileSync(scriptPath, scriptContent, { mode: 0o755 })
+    }
+
+    const shell = resolveMockShell()
+    const proc = spawn(shell.command, [...shell.args, scriptPath], { cwd: workDir, stdio: 'ignore' })
     job.process = proc
     proc.on('close', (code) => {
       job.exitCode = code
       if (code === null || code < 0) job.state = 'CANCELLED'
       else if (code === 0) job.state = 'COMPLETED'
       else job.state = 'FAILED'
-     job.process = null
-        try { unlinkSync(scriptPath) } catch {
-          // ignore cleanup errors
-        }
+      job.process = null
+      try { unlinkSync(scriptPath) } catch {
+        // ignore cleanup errors
+      }
     })
     this.jobs.set(String(id), job)
     return id

@@ -128,6 +128,25 @@ describe('Environment Checks', () => {
       expect(result.ok).toBe(false)
       expect(result.message).toContain('不可用')
     })
+
+    it('returns Windows-specific hint on Windows when rsync is missing', async () => {
+      const { execSync } = await import('child_process')
+      vi.mocked(execSync).mockImplementation(() => {
+        throw new Error('rsync: command not found')
+      })
+
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'win32' })
+
+      const { checkRsync } = await import('../checks.js')
+      const result = await checkRsync()
+
+      expect(result.ok).toBe(false)
+      expect(result.detail).toContain('Windows')
+      expect(result.detail).toContain('SFTP')
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
   })
 
   describe('checkSshConnection', () => {

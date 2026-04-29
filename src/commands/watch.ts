@@ -25,7 +25,8 @@ function globToRegex(pattern: string): RegExp {
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/\*/g, '.*')
 
-  return new RegExp(`(^|/)${escaped}($|/)`)
+  const sep = '[/\\\\]'
+  return new RegExp(`(^|${sep})${escaped}($|${sep})`)
 }
 
 export function registerWatchCommand(program: Command): void {

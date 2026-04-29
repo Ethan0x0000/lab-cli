@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetConfig = vi.fn()
 const mockSyncToRemote = vi.fn()
+const mockUploadDirectory = vi.fn()
+const mockEnsureRemoteDirectory = vi.fn()
+const mockSftp = vi.fn()
+const mockGetConnection = vi.fn()
 const mockSpinner = {
   start: vi.fn(),
   succeed: vi.fn(),
@@ -10,6 +14,7 @@ const mockSpinner = {
 }
 const mockOra = vi.fn(() => mockSpinner)
 const mockDim = vi.fn((value: string) => value)
+const mockIsRsyncAvailable = vi.fn(() => true)
 
 vi.mock('../../config/loader.js', () => ({
   getConfig: mockGetConfig,
@@ -17,6 +22,21 @@ vi.mock('../../config/loader.js', () => ({
 
 vi.mock('../../transfer/rsync.js', () => ({
   syncToRemote: mockSyncToRemote,
+}))
+
+vi.mock('../../transfer/sftp.js', () => ({
+  uploadDirectory: mockUploadDirectory,
+  ensureRemoteDirectory: mockEnsureRemoteDirectory,
+}))
+
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockGetConnection,
+  },
+}))
+
+vi.mock('../../utils/shell.js', () => ({
+  isRsyncAvailable: mockIsRsyncAvailable,
 }))
 
 vi.mock('ora', () => ({
@@ -54,6 +74,7 @@ describe('sync 命令', () => {
     mockSpinner.succeed.mockReturnValue(mockSpinner)
     mockSpinner.fail.mockReturnValue(mockSpinner)
     mockSpinner.text = ''
+    mockIsRsyncAvailable.mockReturnValue(true)
   })
 
   it('注册 sync 命令及其选项', async () => {
@@ -132,6 +153,38 @@ describe('sync 命令', () => {
       }),
     )
     expect(mockSpinner.succeed).toHaveBeenCalledWith('dry-run 完成')
+
+    cwdSpy.mockRestore()
+  })
+
+  it('rsync 不可用时降级为 SFTP 同步', async () => {
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue('E:/repo')
+    const { Command } = await import('commander')
+    const { registerSyncCommand } = await import('../sync.js')
+
+    mockGetConfig.mockResolvedValue(createMockConfig())
+    mockIsRsyncAvailable.mockReturnValue(false)
+    mockGetConnection.mockResolvedValue({
+      sftp: mockSftp.mockResolvedValue({}),
+    })
+    mockUploadDirectory.mockResolvedValue(undefined)
+    mockEnsureRemoteDirectory.mockResolvedValue(undefined)
+
+    const program = new Command()
+    registerSyncCommand(program)
+
+    await program.parseAsync(['node', 'test', 'sync'])
+
+    expect(mockSyncToRemote).not.toHaveBeenCalled()
+    expect(mockGetConnection).toHaveBeenCalled()
+    expect(mockEnsureRemoteDirectory).toHaveBeenCalled()
+    expect(mockUploadDirectory).toHaveBeenCalledWith(
+      expect.anything(),
+      'E:/repo',
+      '/data/project',
+      ['node_modules', '.git'],
+    )
+    expect(mockSpinner.succeed).toHaveBeenCalledWith('同步完成 (0 个文件, 0.0s)')
 
     cwdSpy.mockRestore()
   })

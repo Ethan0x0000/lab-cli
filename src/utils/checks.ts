@@ -5,6 +5,7 @@ import { execSync } from 'child_process'
 import { parse as parseYaml } from 'yaml'
 import { SSHClient } from '../ssh/client.js'
 import type { SSHConnectionOptions } from '../types/index.js'
+import { isWindows } from './shell.js'
 
 export interface CheckResult {
   ok: boolean
@@ -85,10 +86,14 @@ export async function checkRsync(): Promise<CheckResult> {
       message: 'rsync 可用',
     }
   } catch (error) {
+    const isWin = isWindows()
+    const detail = isWin
+      ? 'Windows 上未检测到 rsync。建议安装 cwRsync 或通过 WSL 运行本工具。同步命令将自动降级为 SFTP。'
+      : (error instanceof Error ? error.message : String(error))
     return {
       ok: false,
       message: 'rsync 不可用',
-      detail: error instanceof Error ? error.message : String(error),
+      detail,
     }
   }
 }

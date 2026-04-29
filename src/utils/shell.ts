@@ -1,4 +1,5 @@
 import { homedir } from 'os'
+import { execSync } from 'child_process'
 
 export function expandTilde(filePath: string): string {
   if (filePath === '~') {
@@ -12,8 +13,19 @@ export function expandTilde(filePath: string): string {
   return filePath
 }
 
-// Security-critical: single-quote wrapping prevents shell injection
-// when interpolating user values into remote exec commands.
+export function isWindows(): boolean {
+  return process.platform === 'win32'
+}
+
+export function isRsyncAvailable(): boolean {
+  try {
+    execSync('rsync --version', { stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function shellQuote(value: string): string {
   return "'" + value.replace(/'/g, "'\\''") + "'"
 }

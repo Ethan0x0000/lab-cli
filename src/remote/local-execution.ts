@@ -10,6 +10,7 @@ export class LocalExecution implements RemoteExecution {
         encoding: 'utf-8',
         env: env ? { ...process.env, ...env } as Record<string, string> : process.env,
         timeout: 300_000,
+        shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/sh',
       })
       return { command, stdout: stdout.trim(), stderr: '', exitCode: 0, failed: false }
     } catch (error: any) {
