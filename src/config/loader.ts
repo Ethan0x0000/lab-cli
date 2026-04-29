@@ -60,9 +60,22 @@ export async function mergeConfig(
   }
 
   return {
-    ...globalConfig,
-    ...projectConfig,
-  } as MergedConfig
+    host: globalConfig.host,
+    port: globalConfig.port,
+    username: globalConfig.username,
+    authMethod: globalConfig.authMethod,
+    privateKeyPath: globalConfig.privateKeyPath,
+    defaultPartition: globalConfig.defaultPartition,
+    defaultRemotePath: globalConfig.defaultRemotePath,
+    name: projectConfig.name,
+    remotePath: projectConfig.remotePath,
+    syncExclude: projectConfig.syncExclude,
+    slurmPartition: projectConfig.slurmPartition,
+    slurmGpus: projectConfig.slurmGpus,
+    slurmNodes: projectConfig.slurmNodes,
+    condaEnvName: projectConfig.condaEnvName,
+    condaPythonVersion: projectConfig.condaPythonVersion,
+  }
 }
 
 export async function getConfig(): Promise<MergedConfig> {
