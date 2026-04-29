@@ -17,6 +17,7 @@ describe('rsync 参数构建', () => {
 
     expect(args).toContain('-avz')
     expect(args).toContain('--delete')
+    expect(args).toContain('--out-format=%n')
     expect(args).toContain('--exclude=node_modules')
     expect(args).toContain('--exclude=.git')
     expect(args).toContain('./src')
