@@ -23,7 +23,7 @@ export class SSHManager {
       username: config.username,
       authMethod: config.authMethod,
       privateKeyPath: config.privateKeyPath,
-      password: (config as MergedConfig & { password?: string }).password,
+      password: config.password,
     }
 
     await client.connect(options)
