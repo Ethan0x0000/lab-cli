@@ -1,8 +1,8 @@
 import type { Command } from 'commander'
 import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 import { shellQuote } from '../utils/shell.js'
 
 export function registerLogsCommand(program: Command): void {
@@ -14,12 +14,9 @@ export function registerLogsCommand(program: Command): void {
     .option('--output', '查看 stdout 日志（默认）')
     .option('--error', '查看 stderr 日志')
     .action(async (jobId: string | undefined, options) => {
-      let client: SSHClient | null = null
-
       try {
         const config = await getConfig()
-        client = new SSHClient()
-        await client.connect(await buildSSHOptions(config))
+        const client = await sshManager.getConnection(config)
 
         if (!jobId) {
           console.error(chalk.red('请指定 jobId'))
@@ -87,11 +84,7 @@ export function registerLogsCommand(program: Command): void {
           process.stdout.write(result.stdout)
         }
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`查看日志失败: ${msg}`))
-        process.exitCode = 1
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '查看日志失败')
       }
     })
 }
