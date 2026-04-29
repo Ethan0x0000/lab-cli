@@ -1,10 +1,10 @@
 import type { Command } from 'commander'
 import chalk from 'chalk'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 import { parseSinfoFormat, parseSinfoJson } from '../slurm/parser.js'
 import type { SlurmNodeInfo } from '../types/index.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
 
 function colorizeNodeState(state: string): string {
   const normalizedState = state.toLowerCase()
@@ -31,13 +31,10 @@ export function registerResourcesCommand(program: Command): void {
     .option('--node <name>', '查看特定节点详情')
     .option('--partition <name>', '按分区过滤')
     .action(async (options) => {
-      let client: SSHClient | null = null
-
       try {
         const config = await getConfig()
 
-        client = new SSHClient()
-        await client.connect(await buildSSHOptions(config))
+        const client = await sshManager.getConnection(config)
 
         let nodes: SlurmNodeInfo[] = []
         let jsonParsed = false
@@ -115,11 +112,7 @@ export function registerResourcesCommand(program: Command): void {
         console.log('─'.repeat(header.length + 10))
         console.log(chalk.dim(`空闲 GPU 总计: ${totalIdleGpus} | 查询于 ${new Date().toLocaleTimeString('zh-CN')}`))
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`获取资源信息失败: ${msg}`))
-        process.exitCode = 1
-      } finally {
-        client?.disconnect()
+        handleCliError(error, '获取资源信息失败')
       }
     })
 }
