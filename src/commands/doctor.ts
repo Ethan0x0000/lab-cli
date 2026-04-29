@@ -131,10 +131,10 @@ export function registerDoctorCommand(program: Command): void {
         client = new SSHClient()
         await client.connect(sshOptions)
 
-        const slurmResult = await runCheck('检查 Slurm 可用性...', () => checkSlurmAvailable(client as SSHClient))
+        const slurmResult = await runCheck('检查 Slurm 可用性...', () => checkSlurmAvailable(client!))
         results.push(slurmResult)
 
-        const slurmJsonResult = await runCheck('检查 Slurm JSON 支持...', () => checkSlurmJsonSupport(client as SSHClient))
+        const slurmJsonResult = await runCheck('检查 Slurm JSON 支持...', () => checkSlurmJsonSupport(client!))
         results.push(slurmJsonResult)
 
         printSummary(results)
