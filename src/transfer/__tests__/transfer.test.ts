@@ -1,6 +1,7 @@
 import { homedir } from 'node:os'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildRsyncArgs } from '../rsync.js'
+import { ensureRemoteDirectory } from '../sftp.js'
 import * as transfer from '../index.js'
 
 describe('rsync 参数构建', () => {
@@ -108,5 +109,104 @@ describe('transfer 导出', () => {
     expect(transfer.syncToRemote).toBeTypeOf('function')
     expect(transfer.uploadFile).toBeTypeOf('function')
     expect(transfer.uploadDirectory).toBeTypeOf('function')
+    expect(transfer.ensureRemoteDirectory).toBeTypeOf('function')
+  })
+})
+
+describe('ensureRemoteDirectory', () => {
+  const mockStat = vi.fn()
+  const mockMkdir = vi.fn()
+
+  function createMockSftp(): any {
+    return {
+      stat: mockStat,
+      mkdir: mockMkdir,
+    }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('目录已存在时不创建', async () => {
+    mockStat.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      cb(null)
+    })
+
+    await ensureRemoteDirectory(createMockSftp(), '/data/project')
+
+    expect(mockStat).toHaveBeenCalledWith('/data/project', expect.any(Function))
+    expect(mockMkdir).not.toHaveBeenCalled()
+  })
+
+  it('目录不存在时逐级创建', async () => {
+    let callCount = 0
+    mockStat.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      callCount++
+      if (callCount <= 2) {
+        cb(new Error('No such file'))
+      } else {
+        cb(null)
+      }
+    })
+    mockMkdir.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      cb(null)
+    })
+
+    await ensureRemoteDirectory(createMockSftp(), '/data/project')
+
+    expect(mockMkdir).toHaveBeenCalledTimes(2)
+    expect(mockMkdir).toHaveBeenNthCalledWith(1, '/data', expect.any(Function))
+    expect(mockMkdir).toHaveBeenNthCalledWith(2, '/data/project', expect.any(Function))
+  })
+
+  it('EEXIST 错误视为成功', async () => {
+    mockStat.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      cb(new Error('No such file'))
+    })
+    mockMkdir.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      const err = new Error('File exists') as NodeJS.ErrnoException
+      err.code = 'EEXIST'
+      cb(err)
+    })
+
+    await expect(ensureRemoteDirectory(createMockSftp(), '/data')).resolves.not.toThrow()
+  })
+
+  it('非 EEXIST 错误抛出异常', async () => {
+    mockStat.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      cb(new Error('No such file'))
+    })
+    mockMkdir.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      const err = new Error('Permission denied') as NodeJS.ErrnoException
+      err.code = 'EACCES'
+      cb(err)
+    })
+
+    await expect(ensureRemoteDirectory(createMockSftp(), '/data')).rejects.toThrow('Permission denied')
+  })
+
+  it('空路径和根路径直接返回', async () => {
+    await ensureRemoteDirectory(createMockSftp(), '')
+    await ensureRemoteDirectory(createMockSftp(), '/')
+    await ensureRemoteDirectory(createMockSftp(), '///')
+
+    expect(mockStat).not.toHaveBeenCalled()
+    expect(mockMkdir).not.toHaveBeenCalled()
+  })
+
+  it('相对路径正确解析', async () => {
+    mockStat.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      cb(new Error('No such file'))
+    })
+    mockMkdir.mockImplementation((_path: string, cb: (err?: Error | null) => void) => {
+      cb(null)
+    })
+
+    await ensureRemoteDirectory(createMockSftp(), 'data/project')
+
+    expect(mockMkdir).toHaveBeenCalledTimes(2)
+    expect(mockMkdir).toHaveBeenNthCalledWith(1, 'data', expect.any(Function))
+    expect(mockMkdir).toHaveBeenNthCalledWith(2, 'data/project', expect.any(Function))
   })
 })

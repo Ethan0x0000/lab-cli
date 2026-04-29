@@ -7,6 +7,7 @@ const mockStatSync = vi.fn()
 const mockGetConfig = vi.fn()
 const mockSyncToRemote = vi.fn()
 const mockUploadFile = vi.fn()
+const mockEnsureRemoteDirectory = vi.fn()
 const mockSftp = vi.fn()
 const mockSshManagerGetConnection = vi.fn()
 const mockSpinner = {
@@ -32,6 +33,7 @@ vi.mock('../../transfer/rsync.js', () => ({
 
 vi.mock('../../transfer/sftp.js', () => ({
   uploadFile: mockUploadFile,
+  ensureRemoteDirectory: mockEnsureRemoteDirectory,
 }))
 
 vi.mock('../../ssh/manager.js', () => ({
@@ -89,6 +91,7 @@ describe('upload 命令', () => {
     mockGetConfig.mockResolvedValue(baseConfig)
     mockSftp.mockResolvedValue('mock-sftp')
     mockUploadFile.mockResolvedValue(undefined)
+    mockEnsureRemoteDirectory.mockResolvedValue(undefined)
     mockSshManagerGetConnection.mockResolvedValue({
       sftp: mockSftp,
     })
@@ -141,6 +144,7 @@ describe('upload 命令', () => {
 
     expect(mockSshManagerGetConnection).toHaveBeenCalledWith(baseConfig)
     expect(mockSftp).toHaveBeenCalledTimes(1)
+    expect(mockEnsureRemoteDirectory).toHaveBeenCalledWith('mock-sftp', '/remote/files')
     expect(mockUploadFile).toHaveBeenCalledWith('mock-sftp', 'artifacts/model.bin', '/remote/files/model.bin')
     expect(mockSyncToRemote).not.toHaveBeenCalled()
   })

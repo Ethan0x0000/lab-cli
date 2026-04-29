@@ -7,7 +7,7 @@ import { getConfig } from '../config/loader.js'
 import { sshManager } from '../ssh/manager.js'
 import { handleCliError } from '../utils/errors.js'
 import { syncToRemote } from '../transfer/rsync.js'
-import { uploadFile } from '../transfer/sftp.js'
+import { ensureRemoteDirectory, uploadFile } from '../transfer/sftp.js'
 
 const SMALL_FILE_THRESHOLD = 100 * 1024 * 1024 // 100MB
 
@@ -42,6 +42,7 @@ export function registerUploadCommand(program: Command): void {
           } else if (stat.size < SMALL_FILE_THRESHOLD) {
             const client = await sshManager.getConnection(config)
             const sftp = await client.sftp()
+            await ensureRemoteDirectory(sftp, targetPath)
             await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
             console.log(chalk.dim('ℹ 使用 SFTP 传输（rsync 不可用或文件较小）'))
           } else {
