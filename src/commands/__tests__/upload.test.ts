@@ -7,9 +7,8 @@ const mockStatSync = vi.fn()
 const mockGetConfig = vi.fn()
 const mockSyncToRemote = vi.fn()
 const mockUploadFile = vi.fn()
-const mockConnect = vi.fn()
 const mockSftp = vi.fn()
-const mockDisconnect = vi.fn()
+const mockSshManagerGetConnection = vi.fn()
 const mockSpinner = {
   start: vi.fn(),
   succeed: vi.fn(),
@@ -35,13 +34,15 @@ vi.mock('../../transfer/sftp.js', () => ({
   uploadFile: mockUploadFile,
 }))
 
-vi.mock('../../ssh/client.js', () => ({
-  SSHClient: vi.fn(function MockSSHClient() {
-    return {
-    connect: mockConnect,
-    sftp: mockSftp,
-    disconnect: mockDisconnect,
-    }
+vi.mock('../../ssh/manager.js', () => ({
+  sshManager: {
+    getConnection: mockSshManagerGetConnection,
+  },
+}))
+
+vi.mock('../../utils/errors.js', () => ({
+  handleCliError: vi.fn((error, context) => {
+    throw new Error(`${context}: ${error instanceof Error ? error.message : String(error)}`)
   }),
 }))
 
@@ -92,10 +93,11 @@ describe('upload 命令', () => {
     mockSpinner.fail.mockReturnValue(mockSpinner)
     mockExistsSync.mockReturnValue(true)
     mockGetConfig.mockResolvedValue(baseConfig)
-    mockConnect.mockResolvedValue(undefined)
     mockSftp.mockResolvedValue('mock-sftp')
-    mockDisconnect.mockReturnValue(undefined)
     mockUploadFile.mockResolvedValue(undefined)
+    mockSshManagerGetConnection.mockResolvedValue({
+      sftp: mockSftp,
+    })
     mockSyncToRemote.mockResolvedValue({
       filesTransferred: 1,
       bytesTransferred: 128,
@@ -143,16 +145,9 @@ describe('upload 命令', () => {
     const program = await setupCommand()
     await program.parseAsync(['node', 'labcli', 'upload', 'artifacts/model.bin', '/remote/files'])
 
-    expect(mockConnect).toHaveBeenCalledWith({
-      host: '10.0.0.1',
-      port: 22,
-      username: 'alice',
-      authMethod: 'key',
-      privateKeyPath: '~/.ssh/id_rsa',
-    })
+    expect(mockSshManagerGetConnection).toHaveBeenCalledWith(baseConfig)
     expect(mockSftp).toHaveBeenCalledTimes(1)
     expect(mockUploadFile).toHaveBeenCalledWith('mock-sftp', 'artifacts/model.bin', '/remote/files/model.bin')
-    expect(mockDisconnect).toHaveBeenCalledTimes(1)
     expect(mockSyncToRemote).not.toHaveBeenCalled()
   })
 
@@ -192,15 +187,13 @@ describe('upload 命令', () => {
   it('本地路径不存在时输出友好错误并退出', async () => {
     mockExistsSync.mockReturnValue(false)
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: string | number | null) => {
-      throw new ExitCalled(typeof code === 'number' ? code : 0)
-    }) as typeof process.exit)
+    vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+      throw new Error(`process.exit:${code ?? 0}`)
+    }) as never)
     const program = await setupCommand()
 
-    await expect(program.parseAsync(['node', 'labcli', 'upload', 'missing-path'])).rejects.toMatchObject({ code: 1 })
+    await expect(program.parseAsync(['node', 'labcli', 'upload', 'missing-path'])).rejects.toThrow('process.exit:1')
 
-    expect(errorSpy).toHaveBeenNthCalledWith(1, '路径不存在: missing-path')
-    expect(errorSpy).toHaveBeenNthCalledWith(2, '上传失败: EXIT:1')
-    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(errorSpy).toHaveBeenCalledWith('路径不存在: missing-path')
   })
 })

@@ -4,10 +4,10 @@ import type { Command } from 'commander'
 import chalk from 'chalk'
 import ora from 'ora'
 import { getConfig } from '../config/loader.js'
-import { SSHClient } from '../ssh/client.js'
+import { sshManager } from '../ssh/manager.js'
+import { handleCliError } from '../utils/errors.js'
 import { syncToRemote } from '../transfer/rsync.js'
 import { uploadFile } from '../transfer/sftp.js'
-import { buildSSHOptions } from '../utils/ssh-helpers.js'
 
 const SMALL_FILE_THRESHOLD = 100 * 1024 * 1024 // 100MB
 
@@ -39,14 +39,9 @@ export function registerUploadCommand(program: Command): void {
               port: config.port,
             })
           } else if (stat.size < SMALL_FILE_THRESHOLD) {
-            const client = new SSHClient()
-            try {
-              await client.connect(await buildSSHOptions(config))
-              const sftp = await client.sftp()
-              await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
-            } finally {
-              client.disconnect()
-            }
+            const client = await sshManager.getConnection(config)
+            const sftp = await client.sftp()
+            await uploadFile(sftp, localPath, `${targetPath}/${basename(localPath)}`)
             console.log(chalk.dim('ℹ 使用 SFTP 传输（rsync 不可用或文件较小）'))
           } else {
             await syncToRemote({
@@ -66,9 +61,7 @@ export function registerUploadCommand(program: Command): void {
           throw error
         }
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        console.error(chalk.red(`上传失败: ${msg}`))
-        process.exit(1)
+        handleCliError(error, '上传失败')
       }
     })
 }
