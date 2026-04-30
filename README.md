@@ -1,17 +1,16 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square&logo=nodedotjs" alt="Node.js >= 20">
-  <img src="https://img.shields.io/badge/license-ISC-blue?style=flat-square" alt="License: ISC">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey?style=flat-square" alt="Platform: Linux | macOS">
-  <img src="https://img.shields.io/badge/typescript-5.x-3178c6?style=flat-square&logo=typescript" alt="TypeScript 5.x">
-</p>
-
 <h1 align="center">LabCLI</h1>
 <p align="center">
   <b>Slurm 训练集群的全流程命令行工具</b><br>
   <sub>把 6 步手动操作收敛成一条命令 · 零学习成本的集群交互体验</sub>
 </p>
 
----
+<p align="center">
+  <img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square&logo=nodedotjs" alt="Node.js >= 20">
+  <img src="https://img.shields.io/badge/license-ISC-blue?style=flat-square" alt="License: ISC">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey?style=flat-square" alt="Platform:Windows | Linux | macOS">
+  <img src="https://img.shields.io/badge/typescript-5.x-3178c6?style=flat-square&logo=typescript" alt="TypeScript 5.x">
+</p>
+
 
 ## 为什么需要 LabCLI
 
